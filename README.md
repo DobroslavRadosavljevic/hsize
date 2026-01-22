@@ -81,7 +81,7 @@ format(1073741824); // "1 GiB"
 format(1000, { system: "si" }); // "1 kB"
 format(1024, { system: "jedec" }); // "1 KB"
 format(1024, { bits: true }); // "8 Kib"
-format(1536, { decimals: 3 }); // "1.500 KiB"
+format(1536, { decimals: 3 }); // "1.5 KiB"
 format(1024, { signed: true }); // "+1 KiB"
 format(1024, { longForm: true }); // "1 kibibyte"
 format(2048, { longForm: true }); // "2 kibibytes"
@@ -356,7 +356,7 @@ import { sum, average, median } from "hsize";
 
 // Sum
 sum(["1 GB", "500 MB", "256 KiB"]); // returns bytes
-sum(["1 GB", "500 MB"], { format: true }); // "1.47 GiB"
+sum(["1 GB", "500 MB"], { format: true }); // "1.49 GiB"
 
 // Average
 average(["1 GB", "2 GB", "3 GB"]); // returns bytes
@@ -364,7 +364,7 @@ average(["1 GB", "2 GB", "3 GB"], { format: true }); // "2 GiB"
 
 // Median
 median(["1 GB", "2 GB", "10 GB"]); // returns 2GB in bytes
-median(["1 GB", "2 GB", "10 GB"], { format: true }); // "1.86 GiB"
+median(["1 GB", "2 GB", "10 GB"], { format: true }); // "2 GiB"
 ```
 
 ### 🔒 Clamp Function
@@ -404,7 +404,7 @@ const formatMemory = partial({ system: "iec", decimals: 2 });
 formatMemory(1073741824); // "1 GiB"
 
 // Override options per-call
-formatStorage(1000, { decimals: 3 }); // "1.000 kB"
+formatStorage(1000, { decimals: 3 }); // "1 kB"
 
 // Use with map
 [1024, 1048576, 1073741824].map(partial({ system: "iec" }));
@@ -458,7 +458,7 @@ unit("1 MiB")
   .multiply(2)
   .subtract("256 KiB")
   .divide(2)
-  .toString(); // "896 KiB"
+  .toString(); // "1.38 MiB"
 
 // Add/subtract arrays
 unit("1 GiB").add(["100 MiB", "200 MiB"]);
@@ -487,7 +487,7 @@ import { create } from "hsize";
 // Create SI-configured instance
 const marketing = create({ system: "si" });
 marketing.format(1000000000); // "1 GB"
-marketing.parse("1 GB"); // 1000000000
+marketing.parse("1 GB"); // 1073741824
 
 // Create localized instance
 const german = create({ locale: "de-DE", decimals: 2 });
@@ -682,7 +682,7 @@ format(1180591620717411303424n); // "1 ZiB"
 
 // Use in calculations
 const huge = unit(1099511627776n);
-huge.multiply(1000).toString(); // "976.56 TiB"
+huge.multiply(1000).toString(); // "1000 TiB"
 
 // Strict mode throws for precision loss
 const unsafe = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
