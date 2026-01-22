@@ -5,8 +5,9 @@
 [![npm version](https://img.shields.io/npm/v/hsize.svg)](https://www.npmjs.com/package/hsize)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/hsize)](https://bundlephobia.com/package/hsize)
 [![license](https://img.shields.io/npm/l/hsize.svg)](https://github.com/dobroslavradosavljevic/hsize/blob/main/LICENSE)
+![no dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 
-**hsize** converts bytes to human-readable strings and vice versa. It supports multiple unit systems (SI, IEC, JEDEC), localization, BigInt, chainable operations, comparisons, rate formatting, and much more!
+**hsize** is a zero-dependency library that converts bytes to human-readable strings and vice versa. It supports multiple unit systems (SI, IEC, JEDEC), localization, BigInt, chainable operations, comparisons, rate formatting, and much more!
 
 ## ✨ Features
 
