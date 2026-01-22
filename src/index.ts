@@ -1,10 +1,29 @@
 import type { ByteValue, FormatOptions } from "./types";
 
+import { average, median, sum } from "./aggregate";
+import { approximate } from "./approximate";
+import { clamp } from "./clamp";
+import { between, eq, gt, gte, lt, lte, max, min } from "./compare";
 import { BYTE_PATTERN, GLOBAL_BYTE_PATTERN } from "./constants";
+import { diff } from "./diff";
 import { extract } from "./extract";
 import { create } from "./factory";
 import { format as formatBytes } from "./format";
+import { parseNatural } from "./natural";
 import { parse as parseBytes } from "./parse";
+import { partial } from "./partial";
+import { percent, percentOf, remaining } from "./percentage";
+import {
+  formatCompact,
+  formatFile,
+  formatMemory,
+  formatNetwork,
+  formatPrecise,
+  formatStorage,
+  presets,
+} from "./presets";
+import { formatRange } from "./range";
+import { formatRate, parseRate } from "./rate";
 import { HSizeUnit, unit } from "./unit";
 import { isBytes, isParsable, isUnit } from "./validators";
 
@@ -52,33 +71,96 @@ function hsize(
 hsize.format = formatBytes;
 hsize.parse = parseBytes;
 hsize.extract = extract;
+hsize.diff = diff;
+hsize.approximate = approximate;
+hsize.formatRange = formatRange;
 hsize.unit = unit;
 hsize.create = create;
+hsize.partial = partial;
+hsize.percent = percent;
+hsize.percentOf = percentOf;
+hsize.remaining = remaining;
+hsize.sum = sum;
+hsize.average = average;
+hsize.median = median;
+hsize.formatRate = formatRate;
+hsize.parseRate = parseRate;
 hsize.isBytes = isBytes;
 hsize.isUnit = isUnit;
 hsize.isParsable = isParsable;
+hsize.gt = gt;
+hsize.gte = gte;
+hsize.lt = lt;
+hsize.lte = lte;
+hsize.eq = eq;
+hsize.between = between;
+hsize.min = min;
+hsize.max = max;
+hsize.clamp = clamp;
+hsize.parseNatural = parseNatural;
 
 export {
   formatBytes as format,
   parseBytes as parse,
+  parseNatural,
   extract,
+  diff,
+  clamp,
+  approximate,
+  formatRange,
   unit,
   HSizeUnit,
   create,
+  partial,
+  percent,
+  percentOf,
+  remaining,
+  sum,
+  average,
+  median,
   isBytes,
   isUnit,
   isParsable,
   BYTE_PATTERN,
   GLOBAL_BYTE_PATTERN,
+  presets,
+  formatStorage,
+  formatMemory,
+  formatNetwork,
+  formatCompact,
+  formatPrecise,
+  formatFile,
+  gt,
+  gte,
+  lt,
+  lte,
+  eq,
+  between,
+  min,
+  max,
+  formatRate,
+  parseRate,
 };
 
+export type { AggregateOptions } from "./aggregate";
+export type { ApproximateOptions, ApproximateStyle } from "./approximate";
+export type { ClampOptions } from "./clamp";
+export type { DiffOptions } from "./diff";
+export type { RangeOptions } from "./range";
 export type { HSizeInstance } from "./factory";
+export type { PartialFormatter } from "./partial";
+export type { PercentageOptions } from "./percentage";
+export type { PresetName } from "./presets";
+export type { ParsedRate, RateInterval, RateOptions } from "./rate";
+export type { NaturalParseOptions } from "./natural";
 export type {
   AllUnits,
   BitUnit,
   ByteString,
   ByteUnit,
   ByteValue,
+  CustomUnitDefinition,
+  CustomUnitsConfig,
   ExtractedByte,
   FormatOptions,
   FrenchOctetUnit,

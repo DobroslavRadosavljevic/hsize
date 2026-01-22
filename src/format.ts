@@ -182,7 +182,75 @@ const getSpacer = (opts: Opts): string => {
   return opts.nonBreakingSpace ? NBSP : " ";
 };
 
-const formatAsString = (state: FormatState, opts: Opts): string => {
+/**
+ * Get the long form unit for template formatting
+ */
+const getTemplateLongUnit = (
+  system: UnitSystem,
+  bits: boolean,
+  exponent: number,
+  value: number
+): string => {
+  const unitType = bits ? "bits" : "bytes";
+  const longFormSystem = LONG_FORMS[system]?.[unitType] ?? LONG_FORMS.iec.bytes;
+  let unit: string = longFormSystem[exponent];
+
+  // Convert to lowercase for consistency
+  unit = unit.toLowerCase();
+
+  // Handle singular/plural: if value is exactly 1, use singular form
+  const absValue = Math.abs(value);
+  if (absValue === 1 && unit.endsWith("s")) {
+    unit = unit.slice(0, -1);
+  }
+
+  return unit;
+};
+
+/**
+ * Apply template string to format state
+ */
+const applyTemplate = (
+  template: string,
+  state: FormatState,
+  opts: Opts,
+  formattedValue: string
+): string => {
+  const system = opts.system as UnitSystem;
+  const longUnit = getTemplateLongUnit(
+    system,
+    opts.bits ?? false,
+    state.exponent,
+    state.value
+  );
+
+  const bytesValue =
+    typeof state.bytes === "bigint"
+      ? state.bytes.toString()
+      : String(state.bytes);
+
+  return template
+    .replaceAll("{value}", formattedValue)
+    .replaceAll("{unit}", state.unit)
+    .replaceAll("{longUnit}", longUnit)
+    .replaceAll("{bytes}", bytesValue)
+    .replaceAll("{exponent}", String(state.exponent));
+};
+
+/**
+ * Apply fixed width padding if needed
+ */
+const applyFixedWidth = (result: string, fixedWidth?: number): string => {
+  if (fixedWidth !== undefined && result.length < fixedWidth) {
+    return result.padStart(fixedWidth, " ");
+  }
+  return result;
+};
+
+/**
+ * Format the numeric value with options
+ */
+const formatValue = (state: FormatState, opts: Opts): string => {
   let formattedValue = formatNumber(state.value, {
     decimals: opts.decimals,
     locale: opts.locale,
@@ -197,14 +265,20 @@ const formatAsString = (state: FormatState, opts: Opts): string => {
     formattedValue = `+${formattedValue}`;
   }
 
-  const spacer = getSpacer(opts);
-  let result = `${formattedValue}${spacer}${state.unit}`;
+  return formattedValue;
+};
 
-  if (opts.fixedWidth !== undefined && result.length < opts.fixedWidth) {
-    result = result.padStart(opts.fixedWidth, " ");
+const formatAsString = (state: FormatState, opts: Opts): string => {
+  const formattedValue = formatValue(state, opts);
+
+  if (opts.template !== undefined) {
+    const result = applyTemplate(opts.template, state, opts, formattedValue);
+    return applyFixedWidth(result, opts.fixedWidth);
   }
 
-  return result;
+  const spacer = getSpacer(opts);
+  const result = `${formattedValue}${spacer}${state.unit}`;
+  return applyFixedWidth(result, opts.fixedWidth);
 };
 
 interface InitialState {

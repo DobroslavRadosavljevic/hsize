@@ -373,6 +373,24 @@ export interface FormatOptions {
    * @default "round"
    */
   roundingMethod?: "round" | "floor" | "ceil" | "trunc";
+
+  /**
+   * Custom template string for formatting output.
+   *
+   * Available placeholders:
+   * - `{value}` - The formatted numeric value (e.g., "1.5")
+   * - `{unit}` - The unit symbol (e.g., "KiB", "MB")
+   * - `{longUnit}` - The long form unit name (e.g., "kibibytes", "megabytes")
+   * - `{bytes}` - The original byte value
+   * - `{exponent}` - The exponent level (0-8)
+   *
+   * @example
+   * format(1536, { template: "{value}{unit}" })  // "1.5KiB"
+   * format(1536, { template: "{value} {longUnit}" })  // "1.5 kibibytes"
+   * format(1536, { template: "{bytes} bytes = {value} {unit}" })  // "1536 bytes = 1.5 KiB"
+   * format(1536, { template: "{value}|{unit}|{exponent}" })  // "1.5|KiB|1"
+   */
+  template?: string;
 }
 
 /**
@@ -551,8 +569,38 @@ export interface ExtractedByte {
  * const siSize = create({ system: "si", decimals: 1 });
  * siSize.format(1500);    // "1.5 kB"
  * siSize.parse("1.5 kB"); // 1500
+ *
+ * @example
+ * // Using custom units
+ * const custom = create({
+ *   customUnits: {
+ *     base: 1024,
+ *     units: [
+ *       { symbol: "ch", name: "chunk", nameP: "chunks" },
+ *       { symbol: "bl", name: "block", nameP: "blocks" },
+ *     ]
+ *   }
+ * });
+ * custom.format(1048576);  // "1 bl"
  */
-export interface HSizeConfig extends FormatOptions, ParseOptions {}
+export interface HSizeConfig extends FormatOptions, ParseOptions {
+  /**
+   * Custom unit definitions to override the default unit system.
+   *
+   * When provided, custom units replace the standard byte units (B, KB, MB, etc.)
+   * with user-defined units. Both short symbols and long names are supported.
+   *
+   * @example
+   * {
+   *   base: 1024,
+   *   units: [
+   *     { symbol: "ch", name: "chunk", nameP: "chunks" },
+   *     { symbol: "bl", name: "block", nameP: "blocks" },
+   *   ]
+   * }
+   */
+  customUnits?: CustomUnitsConfig;
+}
 
 /**
  * Interface for chainable byte unit objects.
@@ -724,6 +772,46 @@ export interface UnitDefinition {
   multiplier: number;
   /** Exponent level (0=B, 1=K, 2=M, 3=G, etc.) */
   exponent: number;
+}
+
+/**
+ * Definition for a single custom unit.
+ *
+ * @example
+ * { symbol: "ch", name: "chunk", nameP: "chunks" }
+ */
+export interface CustomUnitDefinition {
+  /** Short form symbol for the unit (e.g., "ch" for chunk) */
+  symbol: string;
+  /** Singular long form name (e.g., "chunk") */
+  name: string;
+  /** Plural long form name (e.g., "chunks") */
+  nameP: string;
+}
+
+/**
+ * Configuration for custom unit tables.
+ *
+ * Allows defining custom unit systems with custom symbols and names.
+ * The units array defines units in increasing order of magnitude,
+ * with each unit being `base` times larger than the previous.
+ *
+ * @example
+ * {
+ *   base: 1024,
+ *   units: [
+ *     { symbol: "ch", name: "chunk", nameP: "chunks" },
+ *     { symbol: "bl", name: "block", nameP: "blocks" },
+ *     { symbol: "sc", name: "sector", nameP: "sectors" },
+ *     { symbol: "rg", name: "region", nameP: "regions" },
+ *   ]
+ * }
+ */
+export interface CustomUnitsConfig {
+  /** Base multiplier between units (e.g., 1024 or 1000) */
+  base: number;
+  /** Array of unit definitions in increasing order of magnitude */
+  units: CustomUnitDefinition[];
 }
 
 /**

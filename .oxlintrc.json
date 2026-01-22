@@ -4,5 +4,20 @@
   "rules": {
     "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
     "import/no-named-as-default-member": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/cli.ts"],
+      "rules": {
+        "eslint/max-statements": "off",
+        "jest/require-hook": "off"
+      }
+    },
+    {
+      "files": ["tests/**/*.ts"],
+      "rules": {
+        "eslint/max-statements": "off"
+      }
+    }
+  ]
 }

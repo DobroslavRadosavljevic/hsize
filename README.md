@@ -6,7 +6,7 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/hsize)](https://bundlephobia.com/package/hsize)
 [![license](https://img.shields.io/npm/l/hsize.svg)](https://github.com/dobroslavradosavljevic/hsize/blob/main/LICENSE)
 
-**hsize** converts bytes to human-readable strings and vice versa. It supports multiple unit systems (SI, IEC, JEDEC), localization, BigInt, chainable operations, and more!
+**hsize** converts bytes to human-readable strings and vice versa. It supports multiple unit systems (SI, IEC, JEDEC), localization, BigInt, chainable operations, comparisons, rate formatting, and much more!
 
 ## ✨ Features
 
@@ -14,10 +14,15 @@
 - 🔢 **Multiple Unit Systems** - SI (1000), IEC (1024), JEDEC
 - 🌍 **Full Localization** - Intl.NumberFormat support
 - 🔗 **Chainable Operations** - Arithmetic with byte values
+- ⚖️ **Comparison Functions** - Compare byte values directly
+- 🚀 **Rate/Speed Formatting** - Format transfer speeds (MB/s, Mbps)
 - 📝 **Text Extraction** - Find byte values in any text
-- 🏭 **Factory Pattern** - Pre-configured instances
+- 🗣️ **Natural Language Parsing** - Parse "about 2 gigs" or "half a terabyte"
+- 🏭 **Factory Pattern** - Pre-configured instances with custom units
+- 🎛️ **Presets** - Built-in presets for storage, memory, network
+- 📊 **Aggregates** - Sum, average, median of byte values
 - 💪 **BigInt Support** - Handle massive numbers with strict mode
-- ✅ **Validation Helpers** - Check if strings are valid byte values
+- 💻 **CLI Tool** - Command-line interface included
 - 📦 **Zero Dependencies** - Lightweight (~6KB gzipped)
 - 🔷 **TypeScript First** - Full type safety with overloads
 
@@ -80,6 +85,10 @@ format(1536, { decimals: 3 }); // "1.500 KiB"
 format(1024, { signed: true }); // "+1 KiB"
 format(1024, { longForm: true }); // "1 kibibyte"
 format(2048, { longForm: true }); // "2 kibibytes"
+
+// Template formatting
+format(1536, { template: "{value}{unit}" }); // "1.5KiB"
+format(1536, { template: "{bytes} bytes = {value} {unit}" }); // "1536 bytes = 1.5 KiB"
 ```
 
 #### Format Options
@@ -98,7 +107,18 @@ format(2048, { longForm: true }); // "2 kibibytes"
 | `unit`             | `string`                                              | -          | Force specific unit                  |
 | `exponent`         | `number` (integer 0-8)                                | -          | Force specific exponent level        |
 | `fixedWidth`       | `number`                                              | -          | Pad output to fixed width            |
+| `template`         | `string`                                              | -          | Custom format template               |
 | `output`           | `"string"` \| `"array"` \| `"object"` \| `"exponent"` | `"string"` | Output format                        |
+
+#### Template Placeholders
+
+| Placeholder  | Description                      |
+| ------------ | -------------------------------- |
+| `{value}`    | The formatted numeric value      |
+| `{unit}`     | The unit symbol (KiB, MB, etc.)  |
+| `{longUnit}` | The long form unit name          |
+| `{bytes}`    | The original byte value          |
+| `{exponent}` | The exponent level (0=B, 1=K...) |
 
 #### Output Formats
 
@@ -154,15 +174,31 @@ parse("invalid"); // NaN
 | `iec`    | `boolean`             | `true`  | Treat ambiguous units as IEC           |
 | `bits`   | `boolean`             | `false` | Interpret values as bits (divide by 8) |
 
-#### Parsing Bits
+### 🗣️ parseNatural(text, options?)
+
+Parse informal, natural language byte descriptions.
 
 ```typescript
-// Parse bit units (automatically detected)
-parse("8 kilobits"); // 1000 (1000 bits = 125 bytes, but returns bits/8)
-parse("8 kibibits"); // 1024
+import { parseNatural } from "hsize";
 
-// Force bit interpretation with option
-parse("1000", { bits: true }); // 125 (1000 bits = 125 bytes)
+// Informal units
+parseNatural("2 gigs"); // 2147483648
+parseNatural("500 megs"); // 524288000
+parseNatural("1 tera"); // 1099511627776
+
+// Approximation words
+parseNatural("about 2 gigs"); // 2147483648
+parseNatural("around 500 megs"); // 524288000
+parseNatural("roughly 1 tera"); // 1099511627776
+
+// Fractions
+parseNatural("half a terabyte"); // 549755813888
+parseNatural("quarter of a gig"); // 268435456
+
+// Quantities
+parseNatural("a couple gigs"); // 2147483648
+parseNatural("a few hundred megs"); // 314572800
+parseNatural("several gigs"); // 5368709120
 ```
 
 ### 📝 extract(text)
@@ -183,6 +219,225 @@ const results = extract(text);
 // Great for parsing logs, system info, etc.
 extract("RAM: 16 GiB, Disk: 512 GB free");
 extract("File size: 2.5 MiB");
+```
+
+### ⚖️ Comparison Functions
+
+Compare byte values directly without manual parsing.
+
+```typescript
+import { gt, gte, lt, lte, eq, between, min, max } from "hsize";
+
+// Greater than / less than
+gt("2 GB", "1 GB"); // true
+lt("500 MB", "1 GB"); // true
+gte("1 GiB", "1 GiB"); // true
+lte("1 GiB", "1 GiB"); // true
+
+// Equality
+eq("1 KiB", 1024); // true
+eq("1024 B", "1 KiB"); // true
+
+// Range check
+between("500 MB", "100 MB", "1 GB"); // true
+
+// Min/max
+min("1 GB", "500 MB", "2 TB"); // 524288000 (500 MB in bytes)
+max("1 GB", "500 MB", "2 TB"); // 2199023255552 (2 TB in bytes)
+```
+
+### 🚀 Rate/Speed Formatting
+
+Format and parse transfer speeds.
+
+```typescript
+import { formatRate, parseRate } from "hsize";
+
+// Format rates
+formatRate(1024); // "1 KiB/s"
+formatRate(1536000); // "1.46 MiB/s"
+formatRate(1024, { interval: "minute" }); // "60 KiB/min"
+formatRate(1024, { interval: "hour" }); // "3.52 MiB/h"
+
+// Network speeds in bits
+formatRate(125000, { bits: true, system: "si" }); // "1 Mb/s"
+formatRate(125000000, { bits: true, system: "si" }); // "1 Gb/s"
+
+// Parse rates
+parseRate("1 KiB/s"); // { bytesPerSecond: 1024, value: 1, unit: "KiB", interval: "second", bits: false }
+parseRate("10 Mbps"); // { bytesPerSecond: 1250000, value: 10, unit: "Mb", interval: "second", bits: true }
+parseRate("60 KiB/min"); // { bytesPerSecond: 1024, ... }
+```
+
+### 📈 Diff/Delta Formatting
+
+Show the difference between two sizes.
+
+```typescript
+import { diff } from "hsize";
+
+// Basic differences
+diff("1 GB", "1.5 GB"); // "+500 MiB"
+diff("2 GB", "1 GB"); // "-1 GiB"
+diff("1 GB", "1 GB"); // "0 B"
+
+// With percentage
+diff("1 GB", "1.5 GB", { percentage: true }); // "+500 MiB (+50%)"
+diff("1 GB", "2 GB", { percentage: true }); // "+1 GiB (+100%)"
+
+// Unsigned
+diff("1 GB", "1.5 GB", { signed: false }); // "512 MiB"
+```
+
+### 📏 Range Formatting
+
+Format byte ranges elegantly.
+
+```typescript
+import { formatRange } from "hsize";
+
+// Basic ranges
+formatRange(1024, 2048); // "1 KiB – 2 KiB"
+formatRange("500 MB", "2 GB"); // "500 MiB – 2 GiB"
+
+// Collapses when equal (default)
+formatRange(1024, 1024); // "1 KiB"
+formatRange(1024, 1024, { collapse: false }); // "1 KiB – 1 KiB"
+
+// Custom separator
+formatRange(1024, 2048, { separator: " to " }); // "1 KiB to 2 KiB"
+```
+
+### 🎯 Approximate Formatting
+
+Human-friendly approximations.
+
+```typescript
+import { approximate } from "hsize";
+
+// Symbol style (default)
+approximate(1500000000); // "~1.4 GiB"
+approximate(999000000, { system: "si" }); // "almost 1 GB"
+approximate(1010000000, { system: "si" }); // "just over 1 GB"
+
+// Verbose style
+approximate(1500000000, { style: "verbose" }); // "about 1.4 GiB"
+
+// Exact values have no prefix
+approximate(1073741824); // "1 GiB"
+```
+
+### 💯 Percentage Calculations
+
+Calculate percentages of byte sizes.
+
+```typescript
+import { percent, percentOf, remaining } from "hsize";
+
+// Calculate percentage
+percent("512 MiB", "1 GiB"); // 50
+percent("1 GB", "4 GB"); // 25
+
+// Calculate percentage of a size
+percentOf(50, "1 GiB"); // 536870912 (bytes)
+percentOf(25, "4 GiB", { format: true }); // "1 GiB"
+
+// Calculate remaining space
+remaining("300 MiB", "1 GiB"); // 759169024 (bytes)
+remaining("256 MiB", "1 GiB", { format: true }); // "768 MiB"
+```
+
+### 📊 Aggregate Functions
+
+Work with collections of byte values.
+
+```typescript
+import { sum, average, median } from "hsize";
+
+// Sum
+sum(["1 GB", "500 MB", "256 KiB"]); // returns bytes
+sum(["1 GB", "500 MB"], { format: true }); // "1.47 GiB"
+
+// Average
+average(["1 GB", "2 GB", "3 GB"]); // returns bytes
+average(["1 GB", "2 GB", "3 GB"], { format: true }); // "2 GiB"
+
+// Median
+median(["1 GB", "2 GB", "10 GB"]); // returns 2GB in bytes
+median(["1 GB", "2 GB", "10 GB"], { format: true }); // "1.86 GiB"
+```
+
+### 🔒 Clamp Function
+
+Constrain values to a range.
+
+```typescript
+import { clamp } from "hsize";
+
+// Clamp to minimum
+clamp("500 KB", { min: "1 MB" }); // 1048576 (1 MB)
+clamp("500 KB", { min: "1 MB", format: true }); // "1 MiB"
+
+// Clamp to maximum
+clamp("2 TB", { max: "1 GB" }); // 1073741824 (1 GB)
+clamp("2 TB", { max: "1 GB", format: true }); // "1 GiB"
+
+// Clamp to range
+clamp("50 MB", { min: "100 MB", max: "1 GB", format: true }); // "100 MiB"
+clamp("500 MB", { min: "100 MB", max: "1 GB", format: true }); // "500 MiB"
+```
+
+### ⚡ Partial Application
+
+Create pre-configured formatters.
+
+```typescript
+import { partial } from "hsize";
+
+// Create a storage formatter
+const formatStorage = partial({ system: "si", decimals: 1 });
+formatStorage(1500000000); // "1.5 GB"
+formatStorage(2500000); // "2.5 MB"
+
+// Create a memory formatter
+const formatMemory = partial({ system: "iec", decimals: 2 });
+formatMemory(1073741824); // "1 GiB"
+
+// Override options per-call
+formatStorage(1000, { decimals: 3 }); // "1.000 kB"
+
+// Use with map
+[1024, 1048576, 1073741824].map(partial({ system: "iec" }));
+// ["1 KiB", "1 MiB", "1 GiB"]
+```
+
+### 🎛️ Presets
+
+Built-in presets for common use cases.
+
+```typescript
+import {
+  presets,
+  formatStorage,
+  formatMemory,
+  formatNetwork,
+  formatCompact,
+  formatPrecise,
+  formatFile,
+} from "hsize";
+
+// Use preset helper functions
+formatStorage(1500000000); // "1.5 GB" (SI, 1 decimal)
+formatMemory(1073741824); // "1 GiB" (IEC, 2 decimals)
+formatNetwork(125000000); // "1 Gb" (bits, SI)
+formatCompact(1536); // "2KiB" (no space, 0 decimals)
+formatPrecise(1536); // "1.5000 KiB" (4 decimals, padded)
+formatFile(1536); // "1.5 KiB" (IEC, 2 decimals)
+
+// Or use presets directly with format()
+import { format } from "hsize";
+format(1500000000, presets.storage); // "1.5 GB"
+format(1073741824, presets.memory); // "1 GiB"
 ```
 
 ### 🔗 unit(value)
@@ -209,10 +464,6 @@ unit("1 MiB")
 unit("1 GiB").add(["100 MiB", "200 MiB"]);
 unit("1 GiB").subtract(["100 MiB", "200 MiB"]);
 
-// Multiply/divide by arrays (sequentially)
-unit("1 KiB").multiply([2, 2, 2]); // 8 KiB
-unit("8 KiB").divide([2, 2, 2]); // 1 KiB
-
 // Convert to different systems
 unit(1048576).toSI(); // "1.05 MB"
 unit(1048576).toIEC(); // "1 MiB"
@@ -233,7 +484,7 @@ Create a pre-configured hsize instance.
 ```typescript
 import { create } from "hsize";
 
-// Create SI-configured instance (for marketing/storage)
+// Create SI-configured instance
 const marketing = create({ system: "si" });
 marketing.format(1000000000); // "1 GB"
 marketing.parse("1 GB"); // 1000000000
@@ -248,7 +499,37 @@ instance.format(1024); // format
 instance.parse("1 KiB"); // parse
 instance.extract("1 KiB file"); // extract
 instance.unit("1 KiB"); // unit
-instance.create({ decimals: 3 }); // nested create
+```
+
+#### 🛠️ Custom Unit Tables
+
+Define your own unit systems.
+
+```typescript
+import { create } from "hsize";
+
+const custom = create({
+  customUnits: {
+    base: 1024,
+    units: [
+      { symbol: "ch", name: "chunk", nameP: "chunks" },
+      { symbol: "bl", name: "block", nameP: "blocks" },
+      { symbol: "sc", name: "sector", nameP: "sectors" },
+      { symbol: "rg", name: "region", nameP: "regions" },
+    ],
+  },
+});
+
+custom.format(1); // "1 ch"
+custom.format(1024); // "1 bl"
+custom.format(1048576); // "1 sc"
+custom.format(1073741824); // "1 rg"
+
+custom.format(1048576, { longForm: true }); // "1 sector"
+custom.format(2097152, { longForm: true }); // "2 sectors"
+
+custom.parse("2 blocks"); // 2048
+custom.parse("1.5 sc"); // 1572864
 ```
 
 ### 🔧 Utility Functions
@@ -274,6 +555,78 @@ tib(1); // 1099511627776
 const fileSize = mib(100); // 104857600
 const bandwidth = mb(10); // 10000000
 ```
+
+### ✅ Validation Helpers
+
+Validate byte strings before parsing.
+
+```typescript
+import { isBytes, isUnit, isParsable } from "hsize";
+
+// Check if a string is a valid byte string
+isBytes("1 KB"); // true
+isBytes("1.5 GiB"); // true
+isBytes("100"); // true (plain numbers are valid)
+isBytes("hello"); // false
+
+// Check if a string is a valid unit
+isUnit("KB"); // true
+isUnit("MiB"); // true
+isUnit("xyz"); // false
+
+// Check if any value is parsable
+isParsable("1 KB"); // true
+isParsable(1024); // true
+isParsable(1024n); // true
+isParsable("hello"); // false
+```
+
+## 💻 CLI
+
+hsize includes a command-line interface.
+
+```bash
+# Format bytes to human-readable
+hsize 1073741824
+# Output: 1 GiB
+
+# Parse human-readable to bytes
+hsize "1.5 GB" --to-bytes
+# Output: 1610612736
+
+# Use different unit system
+hsize 1000000000 --system si
+# Output: 1 GB
+
+# Format with options
+hsize 1536 --decimals 3 --system iec
+# Output: 1.5 KiB
+
+# Compare values
+hsize compare "1 GB" "500 MB"
+# Output: 1 GiB > 500 MiB
+
+# Extract from stdin
+echo "Downloaded 1.5GB of 4GB" | hsize --extract
+# Output:
+# 1.5 GiB
+# 4 GiB
+
+# Show help
+hsize --help
+```
+
+### CLI Options
+
+| Option           | Description                    |
+| ---------------- | ------------------------------ |
+| `-b, --to-bytes` | Output raw bytes               |
+| `-s, --system`   | Unit system: si, iec, jedec    |
+| `-d, --decimals` | Number of decimal places       |
+| `-e, --extract`  | Extract byte values from stdin |
+| `--bits`         | Format as bits                 |
+| `-h, --help`     | Show help                      |
+| `-v, --version`  | Show version                   |
 
 ## 📊 Unit Systems
 
@@ -327,9 +680,6 @@ Handle numbers larger than `Number.MAX_SAFE_INTEGER`.
 format(1099511627776n); // "1 TiB"
 format(1180591620717411303424n); // "1 ZiB"
 
-// Parse to BigInt-safe values
-parse("1 YiB"); // 1.2089258196146292e+24
-
 // Use in calculations
 const huge = unit(1099511627776n);
 huge.multiply(1000).toString(); // "976.56 TiB"
@@ -338,56 +688,6 @@ huge.multiply(1000).toString(); // "976.56 TiB"
 const unsafe = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
 parse(unsafe, { strict: true }); // throws RangeError
 parse(unsafe); // warns and returns approximate value
-```
-
-## ✅ Validation Helpers
-
-Validate byte strings before parsing.
-
-```typescript
-import { isBytes, isUnit, isParsable } from "hsize";
-
-// Check if a string is a valid byte string
-isBytes("1 KB"); // true
-isBytes("1.5 GiB"); // true
-isBytes("100"); // true (plain numbers are valid)
-isBytes("hello"); // false
-isBytes(""); // false
-
-// Check if a string is a valid unit
-isUnit("KB"); // true
-isUnit("MiB"); // true
-isUnit("bytes"); // true
-isUnit("bits"); // true
-isUnit("xyz"); // false
-
-// Check if any value is parsable
-isParsable("1 KB"); // true
-isParsable(1024); // true
-isParsable(1024n); // true
-isParsable("hello"); // false
-isParsable(NaN); // false
-isParsable({}); // false
-```
-
-## 🔍 Exported Patterns
-
-Use the regex patterns directly for custom parsing needs.
-
-```typescript
-import { BYTE_PATTERN, GLOBAL_BYTE_PATTERN } from "hsize";
-
-// BYTE_PATTERN - matches a single byte string (anchored)
-BYTE_PATTERN.test("1 KB"); // true
-BYTE_PATTERN.test("invalid"); // false
-
-// GLOBAL_BYTE_PATTERN - finds all byte strings in text
-const text = "Download: 10 MB, Upload: 5 MB";
-const matches = text.match(GLOBAL_BYTE_PATTERN);
-// ["10 MB", "5 MB"]
-
-// Use in custom validation
-const isValidSize = (str: string) => BYTE_PATTERN.test(str.trim());
 ```
 
 ## 🎯 Real-World Examples
@@ -409,42 +709,36 @@ formatFileSize(500000000); // "476.8 MiB"
 ### Download Progress
 
 ```typescript
-import { format, parse, unit } from "hsize";
+import { format, parse, percent, remaining } from "hsize";
 
-const totalSize = parse("1 GiB");
-const downloaded = parse("750 MiB");
-const remaining = unit(totalSize).subtract(downloaded);
+const totalSize = "1 GiB";
+const downloaded = "750 MiB";
 
-console.log(`Downloaded: ${format(downloaded)}`); // "750 MiB"
-console.log(`Remaining: ${remaining.toString()}`); // "274 MiB"
-console.log(`Progress: ${((downloaded / totalSize) * 100).toFixed(1)}%`); // "69.9%"
+console.log(`Downloaded: ${format(parse(downloaded))}`);
+console.log(`Remaining: ${remaining(downloaded, totalSize, { format: true })}`);
+console.log(`Progress: ${percent(downloaded, totalSize)}%`);
 ```
 
 ### Storage Calculator
 
 ```typescript
-import { format, parse, unit } from "hsize";
+import { sum, average, format } from "hsize";
 
 // Calculate total from multiple files
 const files = ["10 MiB", "25 MiB", "100 MiB", "5 MiB"];
-const total = files.reduce((acc, f) => acc + parse(f), 0);
-console.log(`Total: ${format(total)}`); // "140 MiB"
-
-// Split storage evenly
-const storage = unit("1 TiB");
-const perUser = storage.divide(100);
-console.log(`Per user: ${perUser.toString()}`); // "10.24 GiB"
+console.log(`Total: ${sum(files, { format: true })}`); // "140 MiB"
+console.log(`Average: ${average(files, { format: true })}`); // "35 MiB"
 ```
 
 ### Network Bandwidth
 
 ```typescript
-import { format } from "hsize";
+import { formatRate } from "hsize";
 
 // Display bandwidth in bits (SI)
 const bytesPerSec = 12500000;
-const bitsPerSec = format(bytesPerSec, { bits: true, system: "si" });
-console.log(`Speed: ${bitsPerSec}/s`); // "100 Mb/s"
+console.log(`Speed: ${formatRate(bytesPerSec, { bits: true, system: "si" })}`);
+// "100 Mb/s"
 ```
 
 ### Parse Log Files
@@ -464,36 +758,6 @@ sizes.forEach((s) => {
 });
 ```
 
-## ⚠️ Error Handling
-
-The library provides consistent error handling with configurable strictness.
-
-```typescript
-import { parse, format, unit } from "hsize";
-
-// parse() - returns NaN by default, throws in strict mode
-parse("invalid"); // NaN
-parse("invalid", { strict: true }); // throws TypeError
-
-// format() - always throws for invalid input
-format(NaN); // throws TypeError
-format(Infinity); // throws TypeError
-
-// unit() - throws for invalid values
-unit("invalid"); // throws TypeError
-unit(NaN); // throws TypeError
-
-// Arithmetic validation
-unit(1024).multiply(NaN); // throws TypeError
-unit(1024).multiply(Infinity); // throws TypeError
-unit(1024).divide(0); // throws TypeError (division by zero)
-
-// BigInt precision loss
-const huge = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
-parse(huge); // warns, returns approximate value
-parse(huge, { strict: true }); // throws RangeError
-```
-
 ## 🔷 TypeScript
 
 Full TypeScript support with comprehensive types.
@@ -507,6 +771,16 @@ import type {
   ByteValue,
   AllUnits,
   ExtractedByte,
+  RateOptions,
+  ParsedRate,
+  DiffOptions,
+  RangeOptions,
+  ClampOptions,
+  AggregateOptions,
+  ApproximateOptions,
+  PercentageOptions,
+  CustomUnitsConfig,
+  PresetName,
 } from "hsize";
 
 // Type-safe options
@@ -523,19 +797,6 @@ const str = format(1024); // string
 const arr = format(1024, { output: "array" }); // [number, string]
 const obj = format(1024, { output: "object" }); // HSizeObject
 const exp = format(1024, { output: "exponent" }); // number
-
-// Validation helpers are fully typed
-import { isBytes, isUnit, isParsable } from "hsize";
-
-if (isBytes(userInput)) {
-  // userInput is validated as a byte string
-  const bytes = parse(userInput);
-}
-
-if (isParsable(value)) {
-  // value is string | number | bigint
-  const bytes = parse(value);
-}
 ```
 
 ## 📜 License
