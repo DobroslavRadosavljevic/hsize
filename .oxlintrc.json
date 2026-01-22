@@ -1,4 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["./node_modules/ultracite/config/oxlint/core/.oxlintrc.json"]
+  "extends": ["./node_modules/ultracite/config/oxlint/core/.oxlintrc.json"],
+  "rules": {
+    "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
+    "import/no-named-as-default-member": "off"
+  }
 }
