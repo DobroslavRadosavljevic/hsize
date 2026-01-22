@@ -1,9 +1,15 @@
 import { describe, expect, it } from "bun:test";
 
-import { fn } from "../src";
+import { format, parse } from "../src";
 
-describe("index", () => {
-  it("should return 'Hello, tsdown!'", () => {
-    expect(fn()).toBe("Hello, tsdown!");
+describe("format", () => {
+  it("should convert bytes to human-readable string", () => {
+    expect(format(0)).toBe("0 B");
+  });
+});
+
+describe("parse", () => {
+  it("should convert human-readable string to bytes", () => {
+    expect(parse("0")).toBe(0);
   });
 });

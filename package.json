@@ -1,21 +1,24 @@
 {
-  "name": "npm-ts-start",
+  "name": "hsize",
   "version": "1.0.0",
-  "description": "A starter for creating a TypeScript npm package.",
+  "description": "Convert bytes to human-readable strings and vice versa.",
   "keywords": [
-    "npm",
-    "package",
-    "typescript"
+    "bytes",
+    "filesize",
+    "format",
+    "human-readable",
+    "parse",
+    "size"
   ],
-  "homepage": "https://github.com/dobroslavradosavljevic/npm-ts-start#readme",
+  "homepage": "https://github.com/dobroslavradosavljevic/hsize#readme",
   "bugs": {
-    "url": "https://github.com/dobroslavradosavljevic/npm-ts-start/issues"
+    "url": "https://github.com/dobroslavradosavljevic/hsize/issues"
   },
   "license": "MIT",
   "author": "Dobroslav Radosavljevic <dobroslav.radosavljevic@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dobroslavradosavljevic/npm-ts-start.git"
+    "url": "git+https://github.com/dobroslavradosavljevic/hsize.git"
   },
   "files": [
     "dist"

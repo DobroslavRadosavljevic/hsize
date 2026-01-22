@@ -1,70 +1,55 @@
-# 📦 npm-ts-start
+# hsize
 
-A minimal starter template for creating npm packages in pure TypeScript.
+Convert bytes to human-readable strings and vice versa.
 
-## ✨ Features
-
-- 🔷 **TypeScript** - Write type-safe code with full TypeScript support
-- ⚡ **tsdown** - Fast bundling powered by Rolldown
-- 🧪 **Bun Test** - Fast built-in test runner
-- 🎨 **Ultracite** - Zero-config linting and formatting with Oxlint + Oxfmt
-- 📦 **ESM** - Ships as ES modules with TypeScript declarations
-
-## 🚀 Getting Started
-
-1. Clone or use this template:
+## Install
 
 ```bash
-git clone https://github.com/dobroslavradosavljevic/npm-ts-start.git my-package
-cd my-package
+npm install hsize
 ```
-
-1. Update `package.json` with your package name, description, and author info.
-
-1. Install dependencies:
 
 ```bash
-bun install
+pnpm add hsize
 ```
-
-1. Start developing in `src/index.ts`.
-
-## 📜 Scripts
-
-| Command             | Description                       |
-| ------------------- | --------------------------------- |
-| `bun run build`     | Build the package                 |
-| `bun run dev`       | Build in watch mode               |
-| `bun run test`      | Run tests                         |
-| `bun run lint`      | Check for linting issues          |
-| `bun run format`    | Fix linting and formatting issues |
-| `bun run typecheck` | Run TypeScript type checking      |
-
-## 📁 Project Structure
-
-```txt
-├── src/
-│   └── index.ts        # Package entry point
-├── dist/               # Build output (generated)
-├── tsdown.config.ts    # Build configuration
-├── tsconfig.json       # TypeScript configuration
-└── package.json
-```
-
-## 🚢 Publishing
-
-1. Update the version:
 
 ```bash
-bunx bumpp
+yarn add hsize
 ```
-
-1. Publish to npm:
 
 ```bash
-bun publish
+bun add hsize
 ```
 
-## 📄 License
+## Usage
+
+```ts
+import { format, parse } from "hsize";
+
+format(1024);
+// => "1 KB"
+
+parse("1 KB");
+// => 1024
+```
+
+## API
+
+### format(bytes)
+
+Convert bytes to a human-readable string.
+
+- `bytes` - Number of bytes
+
+Returns a human-readable string.
+
+### parse(str)
+
+Parse a human-readable string to bytes.
+
+- `str` - Human-readable string (e.g., "1 KB", "5 MB")
+
+Returns the number of bytes.
+
+## License
 
 MIT
