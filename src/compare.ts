@@ -1,5 +1,6 @@
 import type { HybridByte } from "./types";
 
+import { decimalCmp } from "./decimal";
 import { parse } from "./parse";
 
 /**
@@ -32,7 +33,7 @@ const toBytes = (value: HybridByte): number => {
  * gt("1 MiB", 1000);  // true
  */
 export const gt = (a: HybridByte, b: HybridByte): boolean =>
-  toBytes(a) > toBytes(b);
+  decimalCmp(toBytes(a), toBytes(b)) > 0;
 
 /**
  * Checks if the first value is greater than or equal to the second.
@@ -47,7 +48,7 @@ export const gt = (a: HybridByte, b: HybridByte): boolean =>
  * gte("500 B", 1000);  // false
  */
 export const gte = (a: HybridByte, b: HybridByte): boolean =>
-  toBytes(a) >= toBytes(b);
+  decimalCmp(toBytes(a), toBytes(b)) >= 0;
 
 /**
  * Checks if the first value is less than the second.
@@ -62,7 +63,7 @@ export const gte = (a: HybridByte, b: HybridByte): boolean =>
  * lt("2 GiB", 1000);    // false
  */
 export const lt = (a: HybridByte, b: HybridByte): boolean =>
-  toBytes(a) < toBytes(b);
+  decimalCmp(toBytes(a), toBytes(b)) < 0;
 
 /**
  * Checks if the first value is less than or equal to the second.
@@ -77,7 +78,7 @@ export const lt = (a: HybridByte, b: HybridByte): boolean =>
  * lte("2 GiB", 1000);    // false
  */
 export const lte = (a: HybridByte, b: HybridByte): boolean =>
-  toBytes(a) <= toBytes(b);
+  decimalCmp(toBytes(a), toBytes(b)) <= 0;
 
 /**
  * Checks if two values are equal in bytes.
@@ -92,7 +93,7 @@ export const lte = (a: HybridByte, b: HybridByte): boolean =>
  * eq("1 GB", "1 GiB");   // false (different bases)
  */
 export const eq = (a: HybridByte, b: HybridByte): boolean =>
-  toBytes(a) === toBytes(b);
+  decimalCmp(toBytes(a), toBytes(b)) === 0;
 
 /**
  * Checks if a value is between a minimum and maximum (inclusive).
@@ -113,7 +114,10 @@ export const between = (
   maxValue: HybridByte
 ): boolean => {
   const bytes = toBytes(value);
-  return bytes >= toBytes(minValue) && bytes <= toBytes(maxValue);
+  return (
+    decimalCmp(bytes, toBytes(minValue)) >= 0 &&
+    decimalCmp(bytes, toBytes(maxValue)) <= 0
+  );
 };
 
 /**
@@ -135,7 +139,7 @@ export const min = (...values: HybridByte[]): number => {
   let result = toBytes(values[0]);
   for (let i = 1; i < values.length; i += 1) {
     const bytes = toBytes(values[i]);
-    if (bytes < result) {
+    if (decimalCmp(bytes, result) < 0) {
       result = bytes;
     }
   }
@@ -161,7 +165,7 @@ export const max = (...values: HybridByte[]): number => {
   let result = toBytes(values[0]);
   for (let i = 1; i < values.length; i += 1) {
     const bytes = toBytes(values[i]);
-    if (bytes > result) {
+    if (decimalCmp(bytes, result) > 0) {
       result = bytes;
     }
   }

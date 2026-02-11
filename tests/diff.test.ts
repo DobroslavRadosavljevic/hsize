@@ -179,6 +179,16 @@ describe("diff", () => {
       const result = diff("3 GiB", "4 GiB", { percentage: true });
       expect(result).toContain("(+33.33%)");
     });
+
+    it("handles half-tie percentage rounding for negative values", () => {
+      // -1 / 20000 * 100 = -0.005%
+      expect(diff(20_000, 19_999, { percentage: true })).toBe("-1 B (0%)");
+    });
+
+    it("handles half-tie percentage rounding for positive values", () => {
+      // +1 / 20000 * 100 = +0.005%
+      expect(diff(20_000, 20_001, { percentage: true })).toBe("+1 B (+0.01%)");
+    });
   });
 
   describe("combined options", () => {

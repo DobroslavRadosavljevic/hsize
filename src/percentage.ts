@@ -1,5 +1,6 @@
 import type { FormatOptions, HybridByte } from "./types";
 
+import { decimalCmp, decimalToNumber, toDecimal } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 
@@ -50,11 +51,11 @@ export const percent = (part: HybridByte, total: HybridByte): number => {
   const partBytes = toBytes(part);
   const totalBytes = toBytes(total);
 
-  if (totalBytes === 0) {
-    return partBytes === 0 ? 0 : Number.POSITIVE_INFINITY;
+  if (decimalCmp(totalBytes, 0) === 0) {
+    return decimalCmp(partBytes, 0) === 0 ? 0 : Number.POSITIVE_INFINITY;
   }
 
-  return (partBytes / totalBytes) * 100;
+  return decimalToNumber(toDecimal(partBytes).div(totalBytes).mul(100));
 };
 
 /**
@@ -95,7 +96,9 @@ export function percentOf(
   options: PercentageOptions = {}
 ): number | string {
   const totalBytes = toBytes(total);
-  const resultBytes = (percentage / 100) * totalBytes;
+  const resultBytes = decimalToNumber(
+    toDecimal(totalBytes).mul(percentage).div(100)
+  );
 
   if (options.format) {
     const { format: _, ...formatOptions } = options;
@@ -143,7 +146,9 @@ export function remaining(
 ): number | string {
   const usedBytes = toBytes(used);
   const totalBytes = toBytes(total);
-  const remainingBytes = totalBytes - usedBytes;
+  const remainingBytes = decimalToNumber(
+    toDecimal(totalBytes).minus(usedBytes)
+  );
 
   if (options.format) {
     const { format: _, ...formatOptions } = options;

@@ -318,6 +318,16 @@ describe("format boundary values", () => {
   it("formats fractional bytes", () => {
     expect(format(0.5)).toBe("0.5 B");
   });
+
+  it("keeps IEC exponent stable at near-threshold boundaries", () => {
+    expect(format(1024 - 1e-12, { output: "exponent" })).toBe(0);
+    expect(format(1024 + 1e-12, { output: "exponent" })).toBe(1);
+  });
+
+  it("keeps SI exponent stable at near-threshold boundaries", () => {
+    expect(format(1000 - 1e-12, { output: "exponent", system: "si" })).toBe(0);
+    expect(format(1000 + 1e-12, { output: "exponent", system: "si" })).toBe(1);
+  });
 });
 
 describe("format locale tests", () => {

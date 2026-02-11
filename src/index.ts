@@ -5,6 +5,7 @@ import { approximate } from "./approximate";
 import { clamp } from "./clamp";
 import { between, eq, gt, gte, lt, lte, max, min } from "./compare";
 import { BYTE_PATTERN, GLOBAL_BYTE_PATTERN } from "./constants";
+import { decimalToNumber, getDecimalPower, toDecimal } from "./decimal";
 import { diff } from "./diff";
 import { extract } from "./extract";
 import { create } from "./factory";
@@ -31,26 +32,29 @@ import { isBytes, isParsable, isUnit } from "./validators";
  * SI utility functions (1000-based)
  */
 export const bytes = (n: number): number => n;
-export const kb = (n: number): number => n * 1e3;
-export const mb = (n: number): number => n * 1e6;
-export const gb = (n: number): number => n * 1e9;
-export const tb = (n: number): number => n * 1e12;
-export const pb = (n: number): number => n * 1e15;
-export const eb = (n: number): number => n * 1e18;
-export const zb = (n: number): number => n * 1e21;
-export const yb = (n: number): number => n * 1e24;
+const scaleUnit = (n: number, base: number, exponent: number): number =>
+  decimalToNumber(toDecimal(n).mul(getDecimalPower(base, exponent)));
+
+export const kb = (n: number): number => scaleUnit(n, 1000, 1);
+export const mb = (n: number): number => scaleUnit(n, 1000, 2);
+export const gb = (n: number): number => scaleUnit(n, 1000, 3);
+export const tb = (n: number): number => scaleUnit(n, 1000, 4);
+export const pb = (n: number): number => scaleUnit(n, 1000, 5);
+export const eb = (n: number): number => scaleUnit(n, 1000, 6);
+export const zb = (n: number): number => scaleUnit(n, 1000, 7);
+export const yb = (n: number): number => scaleUnit(n, 1000, 8);
 
 /**
  * IEC utility functions (1024-based)
  */
-export const kib = (n: number): number => n * 1024;
-export const mib = (n: number): number => n * 1024 ** 2;
-export const gib = (n: number): number => n * 1024 ** 3;
-export const tib = (n: number): number => n * 1024 ** 4;
-export const pib = (n: number): number => n * 1024 ** 5;
-export const eib = (n: number): number => n * 1024 ** 6;
-export const zib = (n: number): number => n * 1024 ** 7;
-export const yib = (n: number): number => n * 1024 ** 8;
+export const kib = (n: number): number => scaleUnit(n, 1024, 1);
+export const mib = (n: number): number => scaleUnit(n, 1024, 2);
+export const gib = (n: number): number => scaleUnit(n, 1024, 3);
+export const tib = (n: number): number => scaleUnit(n, 1024, 4);
+export const pib = (n: number): number => scaleUnit(n, 1024, 5);
+export const eib = (n: number): number => scaleUnit(n, 1024, 6);
+export const zib = (n: number): number => scaleUnit(n, 1024, 7);
+export const yib = (n: number): number => scaleUnit(n, 1024, 8);
 
 /**
  * Main polymorphic hsize function

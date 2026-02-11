@@ -183,7 +183,7 @@ describe("HSizeUnit (chainable)", () => {
 
     it("handles floating point in chained multiply/divide", () => {
       const result = unit(100).multiply(0.1).multiply(10);
-      expect(Math.abs(result.bytes - 100)).toBeLessThan(0.0001);
+      expect(result.bytes).toBe(100);
     });
   });
 

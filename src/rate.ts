@@ -1,5 +1,6 @@
 import type { FormatOptions } from "./types";
 
+import { DECIMAL_EIGHT, decimalToNumber, toDecimal } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 
@@ -101,7 +102,13 @@ const isBitUnit = (unit: string): boolean => {
  * Parse and validate a numeric value from a string.
  */
 const parseRateValue = (valueStr: string): number => {
-  const value = Number.parseFloat(valueStr);
+  let value: number;
+  try {
+    value = decimalToNumber(toDecimal(valueStr));
+  } catch {
+    throw new TypeError(`Invalid rate value: ${valueStr}`);
+  }
+
   if (!Number.isFinite(value)) {
     throw new TypeError(`Invalid rate value: ${valueStr}`);
   }
@@ -116,7 +123,9 @@ const parseBpsRate = (match: RegExpExecArray): ParsedRate => {
   const value = parseRateValue(valueStr);
   const bitUnit = `${prefix}b`;
   const bitsPerSecond = parse(`${value} ${bitUnit}`);
-  const bytesPerSecond = bitsPerSecond / 8;
+  const bytesPerSecond = decimalToNumber(
+    toDecimal(bitsPerSecond).div(DECIMAL_EIGHT)
+  );
 
   return {
     bits: true,
@@ -137,7 +146,9 @@ const parseStandardRate = (match: RegExpExecArray): ParsedRate => {
   const bits = isBitUnit(unit);
   const bytesPerInterval = parse(`${value} ${unit}`);
   const divisor = INTERVAL_TO_SECONDS[interval];
-  const bytesPerSecond = bytesPerInterval / divisor;
+  const bytesPerSecond = decimalToNumber(
+    toDecimal(bytesPerInterval).div(divisor)
+  );
 
   return {
     bits,
@@ -195,7 +206,9 @@ export const formatRate = (
 ): string => {
   const { interval = "second", ...formatOptions } = options;
   const multiplier = INTERVAL_TO_SECONDS[interval];
-  const bytesPerInterval = bytesPerSecond * multiplier;
+  const bytesPerInterval = decimalToNumber(
+    toDecimal(bytesPerSecond).mul(multiplier)
+  );
   const formatted = format(bytesPerInterval, formatOptions);
   const suffix = INTERVAL_SUFFIXES[interval];
   return `${formatted}${suffix}`;

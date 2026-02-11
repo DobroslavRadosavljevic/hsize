@@ -8,13 +8,7 @@ import type {
 } from "./types";
 
 import {
-  BINARY_POWERS,
-  BINARY_POWERS_BIGINT,
-  DECIMAL_POWERS,
-  DECIMAL_POWERS_BIGINT,
   DEFAULT_FORMAT_OPTIONS,
-  LOG_1000,
-  LOG_1024,
   LONG_FORMS,
   MAX_EXPONENT,
   NBSP,
@@ -23,11 +17,14 @@ import {
   UNITS,
 } from "./constants";
 import {
-  calculateExponent,
-  divide,
-  formatNumber,
-  roundToDecimals,
-} from "./utils";
+  DECIMAL_EIGHT,
+  decimalAbs,
+  decimalCmp,
+  decimalToNumber,
+  getDecimalPowers,
+  toDecimal,
+} from "./decimal";
+import { calculateExponent, formatNumber, roundToDecimals } from "./utils";
 
 type Opts = FormatOptions & {
   bits: boolean;
@@ -64,19 +61,10 @@ const getAbsBytes = (
   if (isBigInt) {
     return -(bytes as bigint);
   }
-  return -(bytes as number);
+  return decimalToNumber(decimalAbs(bytes as number));
 };
 
 const getBase = (system: string): number => (system === "si" ? 1000 : 1024);
-
-const getLogBase = (system: string): number =>
-  system === "si" ? LOG_1000 : LOG_1024;
-
-const getPowersBigInt = (system: string): readonly bigint[] =>
-  system === "si" ? DECIMAL_POWERS_BIGINT : BINARY_POWERS_BIGINT;
-
-const getPowersNumber = (system: string): readonly number[] =>
-  system === "si" ? DECIMAL_POWERS : BINARY_POWERS;
 
 const clampExponent = (exp: number): number =>
   Math.max(0, Math.min(MAX_EXPONENT, exp));
@@ -99,12 +87,12 @@ const getExponentFromUnit = (unit: string): number => {
 const computeValue = (
   absBytes: ByteValue,
   exponent: number,
-  isBigInt: boolean,
+  _isBigInt: boolean,
   system: string
 ): number => {
-  const powers = isBigInt ? getPowersBigInt(system) : getPowersNumber(system);
-  const divisor = powers[exponent];
-  return divide(absBytes, divisor, isBigInt);
+  const base = system === "si" ? 1000 : 1024;
+  const divisor = getDecimalPowers(base)[exponent];
+  return decimalToNumber(toDecimal(absBytes).div(divisor));
 };
 
 const adjustForBits = (
@@ -112,15 +100,15 @@ const adjustForBits = (
   exponent: number,
   base: number
 ): { value: number; exponent: number } => {
-  let adjustedValue = value * 8;
+  let adjustedValue = toDecimal(value).mul(DECIMAL_EIGHT);
   let adjustedExponent = exponent;
 
-  if (adjustedValue >= base && adjustedExponent < MAX_EXPONENT) {
-    adjustedValue /= base;
+  if (decimalCmp(adjustedValue, base) >= 0 && adjustedExponent < MAX_EXPONENT) {
+    adjustedValue = adjustedValue.div(base);
     adjustedExponent += 1;
   }
 
-  return { exponent: adjustedExponent, value: adjustedValue };
+  return { exponent: adjustedExponent, value: decimalToNumber(adjustedValue) };
 };
 
 const getUnitArray = (system: UnitSystem, bits: boolean): readonly string[] => {
@@ -143,8 +131,8 @@ const getLongFormUnit = (
   unit = unit.toLowerCase();
 
   // Handle singular/plural: if value is exactly 1, use singular form
-  const absValue = Math.abs(value ?? 0);
-  if (absValue === 1 && unit.endsWith("s")) {
+  const absValue = decimalAbs(value ?? 0);
+  if (decimalCmp(absValue, 1) === 0 && unit.endsWith("s")) {
     unit = unit.slice(0, -1);
   }
 
@@ -199,8 +187,8 @@ const getTemplateLongUnit = (
   unit = unit.toLowerCase();
 
   // Handle singular/plural: if value is exactly 1, use singular form
-  const absValue = Math.abs(value);
-  if (absValue === 1 && unit.endsWith("s")) {
+  const absValue = decimalAbs(value);
+  if (decimalCmp(absValue, 1) === 0 && unit.endsWith("s")) {
     unit = unit.slice(0, -1);
   }
 
@@ -261,7 +249,7 @@ const formatValue = (state: FormatState, opts: Opts): string => {
     thousandsSeparator: opts.thousandsSeparator,
   });
 
-  if (opts.signed && !state.isNegative && state.value !== 0) {
+  if (opts.signed && !state.isNegative && decimalCmp(state.value, 0) !== 0) {
     formattedValue = `+${formattedValue}`;
   }
 
@@ -286,7 +274,6 @@ interface InitialState {
   base: number;
   isBigInt: boolean;
   isNegative: boolean;
-  logBase: number;
 }
 
 const getInitialState = (bytes: ByteValue, system: string): InitialState => {
@@ -296,20 +283,17 @@ const getInitialState = (bytes: ByteValue, system: string): InitialState => {
   const normalizedBytes = !isBigInt && Object.is(bytes, -0) ? 0 : bytes;
   const isNegative = isBigInt
     ? normalizedBytes < 0n
-    : (normalizedBytes as number) < 0;
+    : decimalCmp(normalizedBytes as number, 0) < 0;
   const absBytes = getAbsBytes(normalizedBytes, isNegative, isBigInt);
   const base = getBase(system);
-  const logBase = getLogBase(system);
-  return { absBytes, base, isBigInt, isNegative, logBase };
+  return { absBytes, base, isBigInt, isNegative };
 };
 
 const getRawExponent = (init: InitialState, opts: Opts): number => {
   if (opts.unit) {
     return getExponentFromUnit(opts.unit as string);
   }
-  return (
-    opts.exponent ?? calculateExponent(init.absBytes, init.base, init.logBase)
-  );
+  return opts.exponent ?? calculateExponent(init.absBytes, init.base, 0);
 };
 
 const computeExponentAndValue = (
@@ -327,7 +311,10 @@ const computeExponentAndValue = (
     ({ value } = adjusted);
   }
 
-  return { exponent, value: init.isNegative ? -value : value };
+  return {
+    exponent,
+    value: init.isNegative ? decimalToNumber(toDecimal(value).neg()) : value,
+  };
 };
 
 const buildState = (bytes: ByteValue, opts: Opts): FormatState => {

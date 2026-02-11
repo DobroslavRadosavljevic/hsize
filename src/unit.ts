@@ -6,9 +6,26 @@ import type {
   IHSizeUnit,
 } from "./types";
 
+import { decimalCmp, decimalToNumber, toDecimal } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 import { resolveToBytes } from "./utils";
+
+const ensureFiniteNumbers = (values: number[]): void => {
+  for (const value of values) {
+    if (!Number.isFinite(value)) {
+      throw new TypeError(`Expected finite number, got ${value}`);
+    }
+  }
+};
+
+const multiplyNumbers = (values: number[]) => {
+  let product = toDecimal(1);
+  for (const value of values) {
+    product = product.mul(value);
+  }
+  return product;
+};
 
 /**
  * A chainable class for performing arithmetic operations on byte values.
@@ -77,11 +94,11 @@ export class HSizeUnit implements IHSizeUnit {
    */
   add(value: HybridByte | HybridByte[]): HSizeUnit {
     const values = Array.isArray(value) ? value : [value];
-    const sum = values.reduce(
-      (acc: number, v: HybridByte) => acc + resolveToBytes(v, parse),
-      0
-    );
-    return new HSizeUnit(this.bytes + sum);
+    let sum = toDecimal(0);
+    for (const currentValue of values) {
+      sum = sum.plus(resolveToBytes(currentValue, parse));
+    }
+    return new HSizeUnit(decimalToNumber(toDecimal(this.bytes).plus(sum)));
   }
 
   /**
@@ -98,11 +115,11 @@ export class HSizeUnit implements IHSizeUnit {
    */
   subtract(value: HybridByte | HybridByte[]): HSizeUnit {
     const values = Array.isArray(value) ? value : [value];
-    const sum = values.reduce(
-      (acc: number, v: HybridByte) => acc + resolveToBytes(v, parse),
-      0
-    );
-    return new HSizeUnit(this.bytes - sum);
+    let sum = toDecimal(0);
+    for (const currentValue of values) {
+      sum = sum.plus(resolveToBytes(currentValue, parse));
+    }
+    return new HSizeUnit(decimalToNumber(toDecimal(this.bytes).minus(sum)));
   }
 
   /**
@@ -122,13 +139,10 @@ export class HSizeUnit implements IHSizeUnit {
    */
   multiply(value: number | number[]): HSizeUnit {
     const values = Array.isArray(value) ? value : [value];
-    for (const v of values) {
-      if (!Number.isFinite(v)) {
-        throw new TypeError(`Expected finite number, got ${v}`);
-      }
-    }
-    const product = values.reduce((acc: number, v: number) => acc * v, 1);
-    return new HSizeUnit(this.bytes * product);
+    ensureFiniteNumbers(values);
+    const product = multiplyNumbers(values);
+    const nextBytes = decimalToNumber(toDecimal(this.bytes).mul(product));
+    return new HSizeUnit(nextBytes);
   }
 
   /**
@@ -148,16 +162,13 @@ export class HSizeUnit implements IHSizeUnit {
    */
   divide(value: number | number[]): HSizeUnit {
     const values = Array.isArray(value) ? value : [value];
-    for (const v of values) {
-      if (!Number.isFinite(v)) {
-        throw new TypeError(`Expected finite number, got ${v}`);
-      }
-    }
-    const product = values.reduce((acc: number, v: number) => acc * v, 1);
-    if (product === 0) {
+    ensureFiniteNumbers(values);
+    const product = multiplyNumbers(values);
+    if (decimalCmp(product, 0) === 0) {
       throw new TypeError("Division by zero");
     }
-    return new HSizeUnit(this.bytes / product);
+    const nextBytes = decimalToNumber(toDecimal(this.bytes).div(product));
+    return new HSizeUnit(nextBytes);
   }
 
   /**

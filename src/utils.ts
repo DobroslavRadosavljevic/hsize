@@ -7,6 +7,14 @@ import {
   THOUSANDS_SEPARATOR_PATTERN,
   TRAILING_ZEROS_PATTERN,
 } from "./constants";
+import {
+  decimalAbs,
+  decimalRound,
+  decimalRoundInteger,
+  decimalToNumber,
+  getDecimalPowers,
+  toDecimal,
+} from "./decimal";
 
 /**
  * Cache for Intl.NumberFormat instances with LRU-style eviction
@@ -83,10 +91,18 @@ export const parseLocaleNumber = (
   const trimmed = str.trim();
 
   if (!locale || locale === true) {
-    return Number.parseFloat(trimmed.replace(",", "."));
+    return parseNormalizedNumber(trimmed.replace(",", "."));
   }
 
   return parseWithLocale(trimmed, locale);
+};
+
+const parseNormalizedNumber = (normalized: string): number => {
+  try {
+    return decimalToNumber(toDecimal(normalized));
+  } catch {
+    return Number.NaN;
+  }
 };
 
 const parseWithLocale = (str: string, locale: string | string[]): number => {
@@ -96,7 +112,7 @@ const parseWithLocale = (str: string, locale: string | string[]): number => {
     const separators = extractSeparators(parts);
     return normalizeAndParse(str, separators);
   } catch {
-    return Number.parseFloat(str.replace(",", "."));
+    return parseNormalizedNumber(str.replace(",", "."));
   }
 };
 
@@ -131,7 +147,7 @@ const normalizeAndParse = (
     normalized = normalized.replace(separators.decimal, ".");
   }
 
-  return Number.parseFloat(normalized);
+  return parseNormalizedNumber(normalized);
 };
 
 /**
@@ -141,20 +157,10 @@ export const applyRounding = (
   value: number,
   method: "round" | "floor" | "ceil" | "trunc" = "round"
 ): number => {
-  switch (method) {
-    case "floor": {
-      return Math.floor(value);
-    }
-    case "ceil": {
-      return Math.ceil(value);
-    }
-    case "trunc": {
-      return Math.trunc(value);
-    }
-    default: {
-      return Math.round(value);
-    }
+  if (!Number.isFinite(value)) {
+    return value;
   }
+  return decimalToNumber(decimalRoundInteger(value, method));
 };
 
 /**
@@ -165,10 +171,10 @@ export const roundToDecimals = (
   decimals: number,
   method: "round" | "floor" | "ceil" | "trunc" = "round"
 ): number => {
-  const multiplier = 10 ** decimals;
-  const shifted = value * multiplier;
-  const rounded = applyRounding(shifted, method);
-  return rounded / multiplier;
+  if (!Number.isFinite(value)) {
+    return value;
+  }
+  return decimalToNumber(decimalRound(value, decimals, method));
 };
 
 interface FormatNumberOptions {
@@ -213,7 +219,11 @@ const formatWithLocale = (
   try {
     return getFormatter(localeStr, intlOptions).format(value);
   } catch {
-    return value.toFixed(decimals);
+    try {
+      return toDecimal(value).toFixed(decimals);
+    } catch {
+      return String(value);
+    }
   }
 };
 
@@ -225,7 +235,12 @@ const formatWithoutLocale = (
   const maxDecimals = options.maximumFractionDigits ?? decimals;
   const minDecimals = options.minimumFractionDigits ?? (pad ? maxDecimals : 0);
 
-  let result = value.toFixed(maxDecimals);
+  let result: string;
+  try {
+    result = toDecimal(value).toFixed(maxDecimals);
+  } catch {
+    result = String(value);
+  }
   result = trimDecimals(result, minDecimals, maxDecimals, pad);
   result = addThousandsSeparator(result, thousandsSeparator);
 
@@ -275,37 +290,20 @@ const addThousandsSeparator = (result: string, separator?: string): string => {
 export const calculateExponent = (
   bytes: number | bigint,
   base: number,
-  logBase: number
+  _logBase: number
 ): number => {
   if (bytes === 0 || bytes === 0n) {
     return 0;
   }
 
-  if (typeof bytes === "bigint") {
-    return calculateBigIntExponent(bytes, base);
+  const absBytes = decimalAbs(bytes);
+  const powers = getDecimalPowers(base);
+  for (let exponent = 8; exponent >= 1; exponent -= 1) {
+    if (absBytes.gte(powers[exponent])) {
+      return exponent;
+    }
   }
-
-  return calculateNumberExponent(bytes, logBase);
-};
-
-const calculateBigIntExponent = (bytes: bigint, base: number): number => {
-  const absBytes = bytes < 0n ? -bytes : bytes;
-  let exp = 0;
-  let remaining = absBytes;
-  const bigBase = BigInt(base);
-
-  while (remaining >= bigBase && exp < 8) {
-    remaining /= bigBase;
-    exp += 1;
-  }
-
-  return exp;
-};
-
-const calculateNumberExponent = (bytes: number, logBase: number): number => {
-  const absBytes = Math.abs(bytes);
-  const exp = Math.floor(Math.log(absBytes) / logBase);
-  return Math.max(0, Math.min(8, exp));
+  return 0;
 };
 
 /**
@@ -321,17 +319,19 @@ export const divide = (
   }
 
   if (!isBigInt) {
-    return (value as number) / (divisor as number);
+    return decimalToNumber(toDecimal(value as number).div(divisor as number));
   }
 
-  const bigValue =
-    typeof value === "bigint" ? value : BigInt(Math.floor(value as number));
-  const bigDivisor =
+  const left =
+    typeof value === "bigint"
+      ? toDecimal(value)
+      : decimalRoundInteger(value, "floor");
+  const right =
     typeof divisor === "bigint"
-      ? divisor
-      : BigInt(Math.floor(divisor as number));
+      ? toDecimal(divisor)
+      : decimalRoundInteger(divisor, "floor");
 
-  return Number(bigValue) / Number(bigDivisor);
+  return decimalToNumber(left.div(right));
 };
 
 /**

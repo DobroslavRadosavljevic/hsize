@@ -8,16 +8,19 @@ import type {
   ParseOptions,
 } from "./types";
 
+import {
+  decimalAbs,
+  decimalCmp,
+  decimalToNumber,
+  getDecimalPower,
+  getDecimalPowers,
+  toDecimal,
+} from "./decimal";
 import { extract } from "./extract";
 import { format } from "./format";
 import { parse } from "./parse";
 import { HSizeUnit } from "./unit";
-import {
-  calculateExponent,
-  formatNumber,
-  parseLocaleNumber,
-  roundToDecimals,
-} from "./utils";
+import { formatNumber, parseLocaleNumber, roundToDecimals } from "./utils";
 
 /**
  * Build a parse map from custom units config for efficient lookup
@@ -60,7 +63,7 @@ const getCustomUnitString = (
   if (!longForm) {
     return unitDef.symbol;
   }
-  return Math.abs(value) === 1 ? unitDef.name : unitDef.nameP;
+  return decimalCmp(decimalAbs(value), 1) === 0 ? unitDef.name : unitDef.nameP;
 };
 
 /**
@@ -70,23 +73,20 @@ const calculateCustomValue = (
   absBytes: ByteValue,
   customUnits: CustomUnitsConfig,
   options: FormatOptions,
-  isNegative: boolean,
-  isBigInt: boolean
+  isNegative: boolean
 ): { value: number; exponent: number } => {
   const { base, units } = customUnits;
-  const logBase = Math.log(base);
   const maxExponent = units.length - 1;
 
-  let exponent =
-    options.exponent ??
-    Math.min(maxExponent, calculateExponent(absBytes, base, logBase));
+  const autoExponent = calculateCustomExponent(absBytes, base, maxExponent);
+  let exponent = options.exponent ?? autoExponent;
   exponent = Math.max(0, Math.min(maxExponent, exponent));
 
-  const divisor = base ** exponent;
-  const rawValue = isBigInt
-    ? Number(absBytes) / divisor
-    : (absBytes as number) / divisor;
-  const value = isNegative ? -rawValue : rawValue;
+  const divisor = getDecimalPower(base, exponent);
+  const rawValue = decimalToNumber(toDecimal(absBytes).div(divisor));
+  const value = isNegative
+    ? decimalToNumber(toDecimal(rawValue).neg())
+    : rawValue;
 
   return { exponent, value };
 };
@@ -102,7 +102,9 @@ const getAbsBytes = (
   if (!isNegative) {
     return bytes;
   }
-  return isBigInt ? -(bytes as bigint) : -(bytes as number);
+  return isBigInt
+    ? -(bytes as bigint)
+    : decimalToNumber(decimalAbs(bytes as number));
 };
 
 /**
@@ -130,7 +132,7 @@ const formatCustomValue = (
     thousandsSeparator: options.thousandsSeparator,
   });
 
-  if (options.signed && !isNegative && roundedValue !== 0) {
+  if (options.signed && !isNegative && decimalCmp(roundedValue, 0) !== 0) {
     formatted = `+${formatted}`;
   }
 
@@ -163,8 +165,7 @@ const formatWithCustomUnits = (
     absBytes,
     customUnits,
     options,
-    isNegative,
-    isBigInt
+    isNegative
   );
   const unitStr = getCustomUnitString(
     customUnits.units[exponent],
@@ -231,7 +232,24 @@ const calculateBytesFromUnit = (
     return handleUnknownUnit(unitStr, strict);
   }
 
-  return value * customUnits.base ** unitInfo.exponent;
+  return decimalToNumber(
+    toDecimal(value).mul(getDecimalPower(customUnits.base, unitInfo.exponent))
+  );
+};
+
+const calculateCustomExponent = (
+  absBytes: ByteValue,
+  base: number,
+  maxExponent: number
+): number => {
+  const abs = toDecimal(absBytes);
+  const powers = getDecimalPowers(base, maxExponent);
+  for (let exponent = maxExponent; exponent >= 1; exponent -= 1) {
+    if (decimalCmp(abs, powers[exponent]) >= 0) {
+      return exponent;
+    }
+  }
+  return 0;
 };
 
 /**

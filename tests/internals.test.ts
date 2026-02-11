@@ -53,6 +53,11 @@ describe("applyRounding", () => {
     expect(applyRounding(1.5)).toBe(2);
     expect(applyRounding(1.4)).toBe(1);
   });
+
+  it("matches Math.round behavior for negative half values", () => {
+    expect(applyRounding(-1.5)).toBe(-1);
+    expect(applyRounding(-2.5)).toBe(-2);
+  });
 });
 
 describe("roundToDecimals", () => {
@@ -64,6 +69,11 @@ describe("roundToDecimals", () => {
   it("uses specified rounding method", () => {
     expect(roundToDecimals(1.555, 2, "floor")).toBe(1.55);
     expect(roundToDecimals(1.551, 2, "ceil")).toBe(1.56);
+  });
+
+  it("matches Math.round behavior for negative half decimals", () => {
+    expect(roundToDecimals(-1.25, 1)).toBe(-1.2);
+    expect(roundToDecimals(-2.35, 1)).toBe(-2.3);
   });
 });
 

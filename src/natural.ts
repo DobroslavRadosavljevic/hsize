@@ -6,6 +6,12 @@
  *
  * @module natural
  */
+import {
+  decimalRoundInteger,
+  decimalToNumber,
+  getDecimalPower,
+  toDecimal,
+} from "./decimal";
 
 /**
  * Options for natural language parsing.
@@ -25,25 +31,25 @@ export interface NaturalParseOptions {
 const IEC_MULTIPLIERS: Record<string, number> = {
   byte: 1,
   bytes: 1,
-  gig: 1024 ** 3,
-  gigs: 1024 ** 3,
-  kilo: 1024,
-  kilos: 1024,
-  meg: 1024 ** 2,
-  megs: 1024 ** 2,
-  peta: 1024 ** 5,
-  petas: 1024 ** 5,
-  tera: 1024 ** 4,
-  teras: 1024 ** 4,
+  gig: decimalToNumber(getDecimalPower(1024, 3)),
+  gigs: decimalToNumber(getDecimalPower(1024, 3)),
+  kilo: decimalToNumber(getDecimalPower(1024, 1)),
+  kilos: decimalToNumber(getDecimalPower(1024, 1)),
+  meg: decimalToNumber(getDecimalPower(1024, 2)),
+  megs: decimalToNumber(getDecimalPower(1024, 2)),
+  peta: decimalToNumber(getDecimalPower(1024, 5)),
+  petas: decimalToNumber(getDecimalPower(1024, 5)),
+  tera: decimalToNumber(getDecimalPower(1024, 4)),
+  teras: decimalToNumber(getDecimalPower(1024, 4)),
 };
 
 /**
  * Fraction words mapped to their decimal values.
  */
 const FRACTIONS: Record<string, number> = {
-  half: 0.5,
-  quarter: 0.25,
-  third: 1 / 3,
+  half: decimalToNumber(toDecimal(1).div(2)),
+  quarter: decimalToNumber(toDecimal(1).div(4)),
+  third: decimalToNumber(toDecimal(1).div(3)),
 };
 
 /**
@@ -193,7 +199,7 @@ const findFraction = (tokens: string[]): number | undefined => {
 const findExplicitNumber = (tokens: string[]): number | undefined => {
   for (const token of tokens.toReversed()) {
     if (isNumeric(token)) {
-      return Number.parseFloat(token);
+      return decimalToNumber(toDecimal(token));
     }
   }
   return undefined;
@@ -234,7 +240,7 @@ const computeQuantityValue = (
 ): number | undefined => {
   const { quantity, multiplier, hasArticle } = info;
   if (quantity !== undefined) {
-    return quantity * multiplier;
+    return decimalToNumber(toDecimal(quantity).mul(multiplier));
   }
   // If we only have an article ("a gig", "an meg"), it means 1
   return hasArticle ? multiplier : undefined;
@@ -280,7 +286,9 @@ const processTokens = (
     return handleInvalid(strict, `No recognizable quantity found in: ${text}`);
   }
 
-  return Math.round(value * unitResult.multiplier);
+  return decimalToNumber(
+    decimalRoundInteger(toDecimal(value).mul(unitResult.multiplier), "round")
+  );
 };
 
 /**

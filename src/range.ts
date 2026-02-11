@@ -1,5 +1,6 @@
 import type { FormatOptions, HybridByte } from "./types";
 
+import { decimalCmp } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 
@@ -132,7 +133,7 @@ export const formatRange = (
   const formatOptions = extractFormatOptions(options);
 
   // Collapse when min equals max
-  if (collapse && minBytes === maxBytes) {
+  if (collapse && decimalCmp(minBytes, maxBytes) === 0) {
     return format(minBytes, formatOptions);
   }
 

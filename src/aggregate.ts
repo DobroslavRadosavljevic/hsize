@@ -1,5 +1,6 @@
 import type { FormatOptions, HybridByte } from "./types";
 
+import { decimalCmp, decimalToNumber, toDecimal } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 
@@ -95,9 +96,12 @@ export function sum(
   }
 
   const bytesArray = valuesToBytes(values);
-  const total = bytesArray.reduce((acc, val) => acc + val, 0);
+  let total = toDecimal(0);
+  for (const value of bytesArray) {
+    total = total.plus(value);
+  }
 
-  return maybeFormat(total, options);
+  return maybeFormat(decimalToNumber(total), options);
 }
 
 /**
@@ -143,8 +147,11 @@ export function average(
   }
 
   const bytesArray = valuesToBytes(values);
-  const total = bytesArray.reduce((acc, val) => acc + val, 0);
-  const avg = total / values.length;
+  let total = toDecimal(0);
+  for (const value of bytesArray) {
+    total = total.plus(value);
+  }
+  const avg = decimalToNumber(total.div(values.length));
 
   return maybeFormat(avg, options);
 }
@@ -194,13 +201,17 @@ export function median(
   }
 
   const bytesArray = valuesToBytes(values);
-  const sorted = [...bytesArray].toSorted((a, b) => a - b);
+  const sorted = [...bytesArray].toSorted((a, b) => decimalCmp(a, b));
   const mid = Math.floor(sorted.length / 2);
 
   let medianValue: number;
   if (sorted.length % 2 === 0) {
     // Even number of elements: average of two middle values
-    medianValue = (sorted[mid - 1] + sorted[mid]) / 2;
+    medianValue = decimalToNumber(
+      toDecimal(sorted[mid - 1])
+        .plus(sorted[mid])
+        .div(2)
+    );
   } else {
     // Odd number of elements: middle value
     medianValue = sorted[mid];

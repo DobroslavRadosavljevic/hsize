@@ -5,9 +5,11 @@
 [![npm version](https://img.shields.io/npm/v/hsize.svg)](https://www.npmjs.com/package/hsize)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/hsize)](https://bundlephobia.com/package/hsize)
 [![license](https://img.shields.io/npm/l/hsize.svg)](https://github.com/dobroslavradosavljevic/hsize/blob/main/LICENSE)
-![no dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
+![dependencies](https://img.shields.io/badge/dependencies-1-blue)
 
-**hsize** is a zero-dependency library that converts bytes to human-readable strings and vice versa. It supports multiple unit systems (SI, IEC, JEDEC), localization, BigInt, chainable operations, comparisons, rate formatting, and much more!
+**hsize** is a TypeScript library that converts bytes to human-readable strings and vice versa. It supports multiple unit systems (SI, IEC, JEDEC), localization, BigInt, chainable operations, comparisons, rate formatting, and much more.
+
+All byte/math operations are powered by `decimal.js` with deterministic precision behavior (internal 80-digit Decimal context) to avoid floating-point drift in chained calculations.
 
 ## ✨ Features
 
@@ -24,7 +26,7 @@
 - 📊 **Aggregates** - Sum, average, median of byte values
 - 💪 **BigInt Support** - Handle massive numbers with strict mode
 - 💻 **CLI Tool** - Command-line interface included
-- 📦 **Zero Dependencies** - Lightweight (~6KB gzipped)
+- 🧮 **Deterministic Decimal Math** - Powered by `decimal.js` for stable arithmetic
 - 🔷 **TypeScript First** - Full type safety with overloads
 
 ## 📥 Installation

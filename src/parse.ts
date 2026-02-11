@@ -8,6 +8,7 @@ import {
   UNIT_MAP,
   UPPERCASE_PREFIX_PATTERN,
 } from "./constants";
+import { decimalToNumber, getDecimalPowers, toDecimal } from "./decimal";
 import { parseLocaleNumber } from "./utils";
 
 const parseNumber = (input: number, options: ParseOptions): number => {
@@ -181,7 +182,9 @@ const hasUpperPrefix = (unit: string): boolean =>
 const calculateJedecBytes = (value: number, trimmedUnit: string): number => {
   const prefix = trimmedUnit.charAt(0).toLowerCase();
   const exponent = getExponentFromPrefix(prefix);
-  return value * 1024 ** exponent;
+  return decimalToNumber(
+    toDecimal(value).mul(getDecimalPowers(1024)[exponent])
+  );
 };
 
 const calculateBytes = (
@@ -198,10 +201,12 @@ const calculateBytes = (
 
   const unitInfo = UNIT_MAP[normalizedUnit];
   if (unitInfo) {
-    const rawValue = value * unitInfo.base ** unitInfo.exponent;
+    const rawValue = toDecimal(value).mul(
+      getDecimalPowers(unitInfo.base)[unitInfo.exponent]
+    );
     // Convert bits to bytes if the unit is a bit unit or opts.bits is true
     const isBitUnit = unitInfo.bits || opts.bits;
-    return isBitUnit ? rawValue / 8 : rawValue;
+    return decimalToNumber(isBitUnit ? rawValue.div(8) : rawValue);
   }
 
   return calculateFromParts(value, normalizedUnit, opts);
@@ -218,8 +223,8 @@ const calculateFromParts = (
   const prefix = unitStr.replaceAll(/[ibo]/gi, "").charAt(0).toLowerCase();
   const exponent = getExponentFromPrefix(prefix);
 
-  const multiplier = base ** exponent;
-  return value * multiplier;
+  const multiplier = getDecimalPowers(base)[exponent];
+  return decimalToNumber(toDecimal(value).mul(multiplier));
 };
 
 const getExponentFromPrefix = (prefix: string): number =>

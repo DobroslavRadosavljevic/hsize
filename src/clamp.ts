@@ -1,5 +1,6 @@
 import type { FormatOptions, HybridByte } from "./types";
 
+import { decimalCmp } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 
@@ -68,8 +69,12 @@ const clampValue = (
   maxBytes: number | undefined
 ): number => {
   const afterMin =
-    minBytes !== undefined && value < minBytes ? minBytes : value;
-  return maxBytes !== undefined && afterMin > maxBytes ? maxBytes : afterMin;
+    minBytes !== undefined && decimalCmp(value, minBytes) < 0
+      ? minBytes
+      : value;
+  return maxBytes !== undefined && decimalCmp(afterMin, maxBytes) > 0
+    ? maxBytes
+    : afterMin;
 };
 
 const normalizeAndValidateBound = (

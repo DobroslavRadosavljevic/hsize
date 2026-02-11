@@ -1,15 +1,17 @@
 import type { ByteValue, FormatOptions, UnitSystem } from "./types";
 
+import { DEFAULT_FORMAT_OPTIONS, UNITS } from "./constants";
 import {
-  BINARY_POWERS,
-  DECIMAL_POWERS,
-  DEFAULT_FORMAT_OPTIONS,
-  LOG_1000,
-  LOG_1024,
-  UNITS,
-} from "./constants";
+  DECIMAL_HUNDRED,
+  DECIMAL_ONE,
+  decimalAbs,
+  decimalCmp,
+  decimalRoundInteger,
+  decimalToNumber,
+  getDecimalPower,
+  getDecimalPowers,
+} from "./decimal";
 import { format } from "./format";
-import { calculateExponent } from "./utils";
 
 /**
  * Style options for approximate formatting.
@@ -59,17 +61,14 @@ interface ApproximationResult {
 
 interface SystemConfig {
   base: number;
-  logBase: number;
-  powers: readonly number[];
 }
 
 const DEFAULT_THRESHOLD = 5;
 const MAX_EXPONENT = 8;
+type HDecimalValue = ReturnType<typeof decimalAbs>;
 
 const getSystemConfig = (system: UnitSystem): SystemConfig => ({
   base: system === "si" ? 1000 : 1024,
-  logBase: system === "si" ? LOG_1000 : LOG_1024,
-  powers: system === "si" ? DECIMAL_POWERS : BINARY_POWERS,
 });
 
 const getUnitForExponent = (
@@ -86,20 +85,24 @@ const getUnitForExponent = (
  * Check if the value is close to the next unit level.
  */
 const checkNextUnitProximity = (
-  absBytes: number,
+  absBytes: HDecimalValue,
   exponent: number,
   threshold: number,
-  powers: readonly number[]
+  base: number
 ): ApproximationResult | null => {
   if (exponent >= MAX_EXPONENT) {
     return null;
   }
 
-  const nextPower = powers[exponent + 1];
-  const valueInNextUnit = absBytes / nextPower;
-  const percentFromNextUnit = (1 - valueInNextUnit) * 100;
+  const nextPower = getDecimalPower(base, exponent + 1);
+  const valueInNextUnit = absBytes.div(nextPower);
+  const percentFromNextUnit =
+    DECIMAL_ONE.minus(valueInNextUnit).mul(DECIMAL_HUNDRED);
 
-  if (percentFromNextUnit > 0 && percentFromNextUnit <= threshold) {
+  if (
+    decimalCmp(percentFromNextUnit, 0) > 0 &&
+    decimalCmp(percentFromNextUnit, threshold) <= 0
+  ) {
     return { exponent: exponent + 1, roundValue: 1, type: "almost" };
   }
 
@@ -110,17 +113,23 @@ const checkNextUnitProximity = (
  * Determine the approximation type based on percentage difference.
  */
 const determineType = (
-  percentDiff: number,
-  absPercentDiff: number,
+  percentDiff: HDecimalValue,
+  absPercentDiff: HDecimalValue,
   threshold: number
 ): ApproximationType => {
-  if (absPercentDiff < 0.01) {
+  if (decimalCmp(absPercentDiff, 0.01) < 0) {
     return "exact";
   }
-  if (percentDiff < 0 && absPercentDiff <= threshold) {
+  if (
+    decimalCmp(percentDiff, 0) < 0 &&
+    decimalCmp(absPercentDiff, threshold) <= 0
+  ) {
     return "almost";
   }
-  if (percentDiff > 0 && absPercentDiff <= threshold) {
+  if (
+    decimalCmp(percentDiff, 0) > 0 &&
+    decimalCmp(absPercentDiff, threshold) <= 0
+  ) {
     return "just_over";
   }
   return "about";
@@ -130,20 +139,32 @@ const determineType = (
  * Check if the value is near a round number at the current exponent.
  */
 const checkCurrentUnitProximity = (
-  absBytes: number,
+  absBytes: HDecimalValue,
   exponent: number,
   threshold: number,
-  power: number,
-  valueInUnit: number
+  power: HDecimalValue,
+  valueInUnit: HDecimalValue
 ): ApproximationResult => {
-  const roundedValue = Math.round(valueInUnit);
-  const exactValue = roundedValue * power;
-  const percentDiff = ((absBytes - exactValue) / exactValue) * 100;
-  const absPercentDiff = Math.abs(percentDiff);
+  const roundedValue = decimalRoundInteger(valueInUnit, "round");
+  const exactValue = roundedValue.mul(power);
+
+  if (decimalCmp(exactValue, 0) === 0) {
+    return {
+      exponent,
+      roundValue: decimalToNumber(valueInUnit),
+      type: "about",
+    };
+  }
+
+  const percentDiff = absBytes
+    .minus(exactValue)
+    .div(exactValue)
+    .mul(DECIMAL_HUNDRED);
+  const absPercentDiff = decimalAbs(percentDiff);
   const type = determineType(percentDiff, absPercentDiff, threshold);
   const roundValue = type === "about" ? valueInUnit : roundedValue;
 
-  return { exponent, roundValue, type };
+  return { exponent, roundValue: decimalToNumber(roundValue), type };
 };
 
 /**
@@ -154,21 +175,31 @@ const calculateApproximation = (
   system: UnitSystem,
   threshold: number
 ): ApproximationResult => {
-  const absBytes = Math.abs(bytes);
+  const absBytes = decimalAbs(bytes);
 
-  if (absBytes === 0) {
+  if (decimalCmp(absBytes, 0) === 0) {
     return { exponent: 0, roundValue: 0, type: "exact" };
   }
 
   const config = getSystemConfig(system);
-  const exponent = calculateExponent(absBytes, config.base, config.logBase);
-  const power = config.powers[exponent];
-  const valueInUnit = absBytes / power;
+  const exponent = getExponent(absBytes, config.base);
+  const power = getDecimalPower(config.base, exponent);
+  const valueInUnit = absBytes.div(power);
 
   return (
-    checkNextUnitProximity(absBytes, exponent, threshold, config.powers) ??
+    checkNextUnitProximity(absBytes, exponent, threshold, config.base) ??
     checkCurrentUnitProximity(absBytes, exponent, threshold, power, valueInUnit)
   );
+};
+
+const getExponent = (absBytes: HDecimalValue, base: number): number => {
+  const powers = getDecimalPowers(base, MAX_EXPONENT);
+  for (let exponent = MAX_EXPONENT; exponent >= 1; exponent -= 1) {
+    if (decimalCmp(absBytes, powers[exponent]) >= 0) {
+      return exponent;
+    }
+  }
+  return 0;
 };
 
 /**
@@ -328,8 +359,8 @@ export const approximate = (
 ): string => {
   const config = parseOptions(options);
   const numBytes = validateInput(bytes);
-  const isNegative = numBytes < 0;
-  const absBytes = Math.abs(numBytes);
+  const isNegative = decimalCmp(numBytes, 0) < 0;
+  const absBytes = decimalToNumber(decimalAbs(numBytes));
 
   const result = calculateApproximation(
     absBytes,

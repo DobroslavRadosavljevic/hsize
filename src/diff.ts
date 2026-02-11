@@ -1,5 +1,12 @@
 import type { FormatOptions } from "./types";
 
+import {
+  decimalAbs,
+  decimalCmp,
+  decimalRound,
+  decimalToNumber,
+  toDecimal,
+} from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 
@@ -49,13 +56,13 @@ const normalizeInput = (value: DiffInput): number => {
 const formatZeroPercentage = (): string => "(0%)";
 
 const formatInfinityPercentage = (diffBytes: number): string =>
-  diffBytes > 0 ? "(+Infinity%)" : "(-Infinity%)";
+  decimalCmp(diffBytes, 0) > 0 ? "(+Infinity%)" : "(-Infinity%)";
 
 const formatSignedPercentage = (
   rounded: number,
   absRounded: number
 ): string => {
-  const sign = rounded > 0 ? "+" : "-";
+  const sign = decimalCmp(rounded, 0) > 0 ? "+" : "-";
   return `(${sign}${absRounded}%)`;
 };
 
@@ -63,9 +70,10 @@ const computeRoundedPercent = (
   diffBytes: number,
   oldBytes: number
 ): { rounded: number; absRounded: number } => {
-  const percentChange = (diffBytes / oldBytes) * 100;
-  const rounded = Math.round(percentChange * 100) / 100;
-  return { absRounded: Math.abs(rounded), rounded };
+  const percentChange = toDecimal(diffBytes).div(oldBytes).mul(100);
+  const rounded = decimalToNumber(decimalRound(percentChange, 2, "round"));
+  const absRounded = decimalToNumber(decimalAbs(rounded));
+  return { absRounded, rounded };
 };
 
 const formatPercentage = (
@@ -73,15 +81,15 @@ const formatPercentage = (
   diffBytes: number,
   signed: boolean
 ): string => {
-  if (oldBytes === 0) {
-    return diffBytes === 0
+  if (decimalCmp(oldBytes, 0) === 0) {
+    return decimalCmp(diffBytes, 0) === 0
       ? formatZeroPercentage()
       : formatInfinityPercentage(diffBytes);
   }
 
   const { rounded, absRounded } = computeRoundedPercent(diffBytes, oldBytes);
 
-  if (rounded === 0) {
+  if (decimalCmp(rounded, 0) === 0) {
     return formatZeroPercentage();
   }
 
@@ -103,14 +111,14 @@ const formatDiffValue = (
   signed: boolean,
   formatOpts: FormatOptions
 ): string => {
-  const absDiff = Math.abs(diffBytes);
+  const absDiff = decimalToNumber(decimalAbs(diffBytes));
   const formattedDiff = format(absDiff, { ...formatOpts, signed: false });
 
-  if (diffBytes === 0 || !signed) {
+  if (decimalCmp(diffBytes, 0) === 0 || !signed) {
     return formattedDiff;
   }
 
-  const sign = diffBytes > 0 ? "+" : "-";
+  const sign = decimalCmp(diffBytes, 0) > 0 ? "+" : "-";
   return `${sign}${formattedDiff}`;
 };
 
@@ -162,7 +170,7 @@ export const diff = (
   const newBytes = normalizeInput(newValue);
   validateBytes(oldBytes, newBytes);
 
-  const diffBytes = newBytes - oldBytes;
+  const diffBytes = decimalToNumber(toDecimal(newBytes).minus(oldBytes));
   const result = formatDiffValue(diffBytes, signed, formatOpts);
 
   if (!percentage) {
