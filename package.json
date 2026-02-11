@@ -1,6 +1,6 @@
 {
   "name": "hsize",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert bytes to human-readable strings and vice versa.",
   "keywords": [
     "bytes",
