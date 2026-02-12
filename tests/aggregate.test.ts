@@ -218,3 +218,20 @@ describe("type inference", () => {
     expect(typeof result).toBe("string");
   });
 });
+
+describe("unsafe bigint handling", () => {
+  const a = 2n ** 80n + 1n;
+  const b = 2n ** 80n + 2n;
+
+  it("throws RangeError for sum with out-of-safe-range bigint values", () => {
+    expect(() => sum([a, b])).toThrow(RangeError);
+  });
+
+  it("throws RangeError for average with out-of-safe-range bigint values", () => {
+    expect(() => average([a, b])).toThrow(RangeError);
+  });
+
+  it("throws RangeError for median with out-of-safe-range bigint values", () => {
+    expect(() => median([a, b])).toThrow(RangeError);
+  });
+});

@@ -12,6 +12,7 @@ import {
   getDecimalPowers,
 } from "./decimal";
 import { format } from "./format";
+import { bigIntToSafeNumber } from "./utils";
 
 /**
  * Style options for approximate formatting.
@@ -238,7 +239,8 @@ const getPrefix = (type: ApproximationType, style: ApproximateStyle): string =>
  * Validate the input byte value.
  */
 const validateInput = (bytes: ByteValue): number => {
-  const numBytes = typeof bytes === "bigint" ? Number(bytes) : bytes;
+  const numBytes =
+    typeof bytes === "bigint" ? bigIntToSafeNumber(bytes) : bytes;
 
   if (!Number.isFinite(numBytes)) {
     throw new TypeError(

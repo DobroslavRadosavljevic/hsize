@@ -1,6 +1,6 @@
 import type { FormatOptions } from "./types";
 
-import { DECIMAL_EIGHT, decimalToNumber, toDecimal } from "./decimal";
+import { decimalToNumber, toDecimal } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
 
@@ -88,14 +88,24 @@ const parseIntervalString = (intervalStr: string): RateInterval => {
 /**
  * Determine if a unit string represents bits.
  */
-const isBitUnit = (unit: string): boolean => {
-  const normalized = unit.toLowerCase();
-  return (
-    normalized.endsWith("b") &&
-    !normalized.endsWith("ib") &&
-    !normalized.endsWith("kb") &&
-    normalized !== "b"
+const isBitUnit = (unit: string): boolean => unit.endsWith("b");
+
+const parseRateToBytes = (
+  value: number,
+  unit: string,
+  interval: RateInterval
+): { bits: boolean; bytesPerSecond: number } => {
+  const bits = isBitUnit(unit);
+  const bytesPerInterval = parse(
+    `${value} ${unit}`,
+    bits ? { bits: true } : {}
   );
+  const divisor = INTERVAL_TO_SECONDS[interval];
+  const bytesPerSecond = decimalToNumber(
+    toDecimal(bytesPerInterval).div(divisor)
+  );
+
+  return { bits, bytesPerSecond };
 };
 
 /**
@@ -122,13 +132,10 @@ const parseBpsRate = (match: RegExpExecArray): ParsedRate => {
   const [, valueStr, prefix] = match;
   const value = parseRateValue(valueStr);
   const bitUnit = `${prefix}b`;
-  const bitsPerSecond = parse(`${value} ${bitUnit}`);
-  const bytesPerSecond = decimalToNumber(
-    toDecimal(bitsPerSecond).div(DECIMAL_EIGHT)
-  );
+  const { bits, bytesPerSecond } = parseRateToBytes(value, bitUnit, "second");
 
   return {
-    bits: true,
+    bits,
     bytesPerSecond,
     interval: "second",
     unit: bitUnit,
@@ -143,12 +150,7 @@ const parseStandardRate = (match: RegExpExecArray): ParsedRate => {
   const [, valueStr, unit, intervalStr] = match;
   const value = parseRateValue(valueStr);
   const interval = parseIntervalString(intervalStr);
-  const bits = isBitUnit(unit);
-  const bytesPerInterval = parse(`${value} ${unit}`);
-  const divisor = INTERVAL_TO_SECONDS[interval];
-  const bytesPerSecond = decimalToNumber(
-    toDecimal(bytesPerInterval).div(divisor)
-  );
+  const { bits, bytesPerSecond } = parseRateToBytes(value, unit, interval);
 
   return {
     bits,

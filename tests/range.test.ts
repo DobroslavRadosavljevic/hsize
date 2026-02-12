@@ -146,6 +146,17 @@ describe("formatRange", () => {
     });
   });
 
+  describe("unsafe bigint handling", () => {
+    const a = 2n ** 80n + 1n;
+    const b = 2n ** 80n + 2n;
+
+    it("throws RangeError for out-of-safe-range bigint inputs", () => {
+      expect(() => formatRange(a, b)).toThrow(RangeError);
+      expect(() => formatRange(a, 1024)).toThrow(RangeError);
+      expect(() => formatRange(1024, b)).toThrow(RangeError);
+    });
+  });
+
   describe("edge cases", () => {
     it("handles zero range", () => {
       expect(formatRange(0, 0)).toBe("0 B");

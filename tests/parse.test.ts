@@ -94,6 +94,16 @@ describe("parse", () => {
     it("throws in strict mode for invalid number", () => {
       expect(() => parse("abc KiB", { strict: true })).toThrow();
     });
+
+    it("returns NaN for overflow values", () => {
+      expect(parse("1e309 B")).toBeNaN();
+      expect(parse("-1e309 B")).toBeNaN();
+    });
+
+    it("throws in strict mode for overflow values", () => {
+      expect(() => parse("1e309 B", { strict: true })).toThrow(TypeError);
+      expect(() => parse("-1e309 B", { strict: true })).toThrow(TypeError);
+    });
   });
 
   describe("JEDEC units fallback", () => {

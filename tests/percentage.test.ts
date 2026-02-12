@@ -42,6 +42,15 @@ describe("percent", () => {
     });
   });
 
+  describe("unsafe bigint handling", () => {
+    const a = 2n ** 80n + 1n;
+    const b = 2n ** 80n + 2n;
+
+    it("throws RangeError for out-of-safe-range bigint inputs", () => {
+      expect(() => percent(a, b)).toThrow(RangeError);
+    });
+  });
+
   describe("edge cases", () => {
     it("returns 0 when both part and total are 0", () => {
       expect(percent(0, 0)).toBe(0);
@@ -147,6 +156,14 @@ describe("percentOf", () => {
       expect(percentOf(50, 1024n)).toBe(512);
     });
   });
+
+  describe("unsafe bigint handling", () => {
+    const huge = 2n ** 80n + 1n;
+
+    it("throws RangeError for out-of-safe-range bigint totals", () => {
+      expect(() => percentOf(50, huge)).toThrow(RangeError);
+    });
+  });
 });
 
 describe("remaining", () => {
@@ -224,6 +241,14 @@ describe("remaining", () => {
     it("handles bigint inputs", () => {
       expect(remaining(512n, 1024n)).toBe(512);
       expect(remaining(512n, "1 KiB")).toBe(512);
+    });
+  });
+
+  describe("unsafe bigint handling", () => {
+    const huge = 2n ** 80n + 1n;
+
+    it("throws RangeError for out-of-safe-range bigint inputs", () => {
+      expect(() => remaining(huge, huge)).toThrow(RangeError);
     });
   });
 

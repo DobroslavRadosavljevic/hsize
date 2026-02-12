@@ -221,4 +221,14 @@ describe("diff", () => {
       );
     });
   });
+
+  describe("unsafe bigint handling", () => {
+    const a = 2n ** 80n + 1n;
+    const b = 2n ** 80n + 2n;
+
+    it("throws RangeError for out-of-safe-range bigint inputs", () => {
+      expect(() => diff(a, b)).toThrow(RangeError);
+      expect(() => diff(a, b, { percentage: true })).toThrow(RangeError);
+    });
+  });
 });

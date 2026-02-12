@@ -3,6 +3,7 @@ import type { FormatOptions, HybridByte } from "./types";
 import { decimalCmp } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
+import { bigIntToSafeNumber } from "./utils";
 
 /**
  * Default separator for range formatting (en-dash with spaces)
@@ -48,7 +49,7 @@ const normalizeToBytes = (value: HybridByte): number => {
     return parse(value);
   }
   if (typeof value === "bigint") {
-    return Number(value);
+    return bigIntToSafeNumber(value);
   }
   return value;
 };

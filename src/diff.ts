@@ -9,6 +9,7 @@ import {
 } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
+import { bigIntToSafeNumber } from "./utils";
 
 /**
  * Options for formatting the difference between two byte values.
@@ -48,7 +49,7 @@ const normalizeInput = (value: DiffInput): number => {
     return parse(value);
   }
   if (typeof value === "bigint") {
-    return Number(value);
+    return bigIntToSafeNumber(value);
   }
   return value;
 };

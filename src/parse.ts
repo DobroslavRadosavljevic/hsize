@@ -169,8 +169,19 @@ const processMatch = (match: RegExpExecArray, opts: ParseOptions): number => {
 
   // Regex match group guarantees valid number format, parseLocaleNumber always succeeds
   const value = parseLocaleNumber(valueStr, opts.locale);
+  if (!Number.isFinite(value)) {
+    return handleInvalid(opts.strict, `Invalid numeric value: ${valueStr}`);
+  }
 
-  return calculateBytes(value, unitStr, opts);
+  const bytes = calculateBytes(value, unitStr, opts);
+  if (!Number.isFinite(bytes)) {
+    return handleInvalid(
+      opts.strict,
+      `Parsed byte value exceeds finite range: ${match[0]}`
+    );
+  }
+
+  return bytes;
 };
 
 const isJedecStyleUnit = (trimmedUnit: string): boolean =>

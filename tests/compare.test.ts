@@ -263,4 +263,20 @@ describe("compare", () => {
       expect(eq("1 TiB", 1_099_511_627_776)).toBe(true);
     });
   });
+
+  describe("unsafe bigint handling", () => {
+    const a = 2n ** 80n + 1n;
+    const b = 2n ** 80n + 2n;
+
+    it("throws RangeError for comparisons with out-of-safe-range bigint", () => {
+      expect(() => eq(a, b)).toThrow(RangeError);
+      expect(() => gt(a, b)).toThrow(RangeError);
+      expect(() => between(a, 0, b)).toThrow(RangeError);
+    });
+
+    it("throws RangeError for min/max with out-of-safe-range bigint", () => {
+      expect(() => min(a, b)).toThrow(RangeError);
+      expect(() => max(a, b)).toThrow(RangeError);
+    });
+  });
 });

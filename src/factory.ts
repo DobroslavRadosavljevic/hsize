@@ -20,7 +20,12 @@ import { extract } from "./extract";
 import { format } from "./format";
 import { parse } from "./parse";
 import { HSizeUnit } from "./unit";
-import { formatNumber, parseLocaleNumber, roundToDecimals } from "./utils";
+import {
+  bigIntToSafeNumber,
+  formatNumber,
+  parseLocaleNumber,
+  roundToDecimals,
+} from "./utils";
 
 /**
  * Build a parse map from custom units config for efficient lookup
@@ -297,23 +302,9 @@ const handleNumberInput = (input: number, strict?: boolean): number => {
 };
 
 /**
- * Check if bigint is out of safe range
- */
-const isBigIntOutOfRange = (input: bigint): boolean =>
-  input > BigInt(Number.MAX_SAFE_INTEGER) ||
-  input < BigInt(Number.MIN_SAFE_INTEGER);
-
-/**
  * Handle bigint input for parsing
  */
-const handleBigIntInput = (input: bigint, strict?: boolean): number => {
-  if (isBigIntOutOfRange(input) && strict) {
-    throw new RangeError(
-      "hsize: BigInt value exceeds safe integer range, precision would be lost"
-    );
-  }
-  return Number(input);
-};
+const handleBigIntInput = (input: bigint): number => bigIntToSafeNumber(input);
 
 /**
  * Create format function for instance
@@ -350,7 +341,7 @@ const createInstanceParse =
     }
 
     if (typeof input === "bigint") {
-      return handleBigIntInput(input, mergedOptions.strict);
+      return handleBigIntInput(input);
     }
 
     if (customUnits && customParseMap) {

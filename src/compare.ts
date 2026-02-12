@@ -2,6 +2,7 @@ import type { HybridByte } from "./types";
 
 import { decimalCmp } from "./decimal";
 import { parse } from "./parse";
+import { bigIntToSafeNumber } from "./utils";
 
 /**
  * Converts a HybridByte input to bytes for comparison.
@@ -15,7 +16,7 @@ const toBytes = (value: HybridByte): number => {
     return value;
   }
   if (typeof value === "bigint") {
-    return Number(value);
+    return bigIntToSafeNumber(value);
   }
   return parse(value);
 };

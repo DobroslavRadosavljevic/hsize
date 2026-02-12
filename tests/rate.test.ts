@@ -171,12 +171,23 @@ describe("parseRate", () => {
       // 8 Kbps = 8000 bits/s = 1000 bytes/s (SI units)
       expect(result.bytesPerSecond).toBe(1000);
     });
+
+    it("parses slash-style bit units", () => {
+      expect(parseRate("1 Mb/s").bytesPerSecond).toBe(125_000);
+      expect(parseRate("8 Kib/s").bytesPerSecond).toBe(1024);
+      expect(parseRate("1 kb/s").bytesPerSecond).toBe(125);
+    });
   });
 
   describe("unit systems", () => {
     it("parses SI units", () => {
-      expect(parseRate("1 kB/s").bytesPerSecond).toBe(1000);
-      expect(parseRate("1 MB/s").bytesPerSecond).toBe(1_048_576);
+      const kb = parseRate("1 kB/s");
+      expect(kb.bytesPerSecond).toBe(1000);
+      expect(kb.bits).toBe(false);
+
+      const mb = parseRate("1 MB/s");
+      expect(mb.bytesPerSecond).toBe(1_048_576);
+      expect(mb.bits).toBe(false);
     });
 
     it("parses IEC units", () => {
@@ -264,5 +275,13 @@ describe("formatRate and parseRate roundtrip", () => {
     const formatted = formatRate(original, { interval: "minute" });
     const parsed = parseRate(formatted);
     expect(parsed.bytesPerSecond).toBeCloseTo(original, 0);
+  });
+
+  it("roundtrips SI bit rates", () => {
+    const original = 125_000;
+    const formatted = formatRate(original, { bits: true, system: "si" });
+    const parsed = parseRate(formatted);
+    expect(parsed.bytesPerSecond).toBe(original);
+    expect(parsed.bits).toBe(true);
   });
 });

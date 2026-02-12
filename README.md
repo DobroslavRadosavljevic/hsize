@@ -58,7 +58,7 @@ format(1500000); // "1.43 MiB"
 
 // Parse human-readable string to bytes
 parse("1 KiB"); // 1024
-parse("1.5 MB"); // 1500000
+parse("1.5 MB"); // 1572864
 
 // Or use the polymorphic main function
 hsize(1024); // "1 KiB"
@@ -166,6 +166,10 @@ parse("1 Go"); // 1000000000
 // Strict mode (throws on invalid input)
 parse("invalid", { strict: true }); // throws TypeError
 parse("invalid"); // NaN
+
+// Overflow values
+parse("1e309 B"); // NaN
+parse("1e309 B", { strict: true }); // throws TypeError
 ```
 
 #### Parse Options
@@ -269,8 +273,13 @@ formatRate(125000000, { bits: true, system: "si" }); // "1 Gb/s"
 // Parse rates
 parseRate("1 KiB/s"); // { bytesPerSecond: 1024, value: 1, unit: "KiB", interval: "second", bits: false }
 parseRate("10 Mbps"); // { bytesPerSecond: 1250000, value: 10, unit: "Mb", interval: "second", bits: true }
+parseRate("1 Mb/s"); // { bytesPerSecond: 125000, ... }
+parseRate("8 Kib/s"); // { bytesPerSecond: 1024, ... }
 parseRate("60 KiB/min"); // { bytesPerSecond: 1024, ... }
 ```
+
+`parseRate()` treats units ending in lowercase `b` (for example `Mb`, `Kib`, `kb`) as bits,
+and units ending in uppercase `B` (for example `MB`, `MiB`, `kB`) as bytes.
 
 ### 📈 Diff/Delta Formatting
 
@@ -280,12 +289,12 @@ Show the difference between two sizes.
 import { diff } from "hsize";
 
 // Basic differences
-diff("1 GB", "1.5 GB"); // "+500 MiB"
+diff("1 GB", "1.5 GB"); // "+512 MiB"
 diff("2 GB", "1 GB"); // "-1 GiB"
 diff("1 GB", "1 GB"); // "0 B"
 
 // With percentage
-diff("1 GB", "1.5 GB", { percentage: true }); // "+500 MiB (+50%)"
+diff("1 GB", "1.5 GB", { percentage: true }); // "+512 MiB (+50%)"
 diff("1 GB", "2 GB", { percentage: true }); // "+1 GiB (+100%)"
 
 // Unsigned
@@ -494,7 +503,7 @@ marketing.parse("1 GB"); // 1073741824
 
 // Create localized instance
 const german = create({ locale: "de-DE", decimals: 2 });
-german.format(1536); // "1,50 KiB"
+german.format(1536); // "1,5 KiB"
 
 // Instance has all methods
 const instance = create({ system: "iec" });
@@ -692,6 +701,10 @@ const unsafe = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
 parse(unsafe, { strict: true }); // throws RangeError
 parse(unsafe); // warns and returns approximate value
 ```
+
+For APIs that operate in number-space (`compare`, `diff`, `percent`/`percentOf`/`remaining`,
+`sum`/`average`/`median`, `clamp`, `formatRange`, `approximate`, and `create().parse`),
+out-of-safe-range BigInt inputs now throw `RangeError` instead of silently losing precision.
 
 ## 🎯 Real-World Examples
 

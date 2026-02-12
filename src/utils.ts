@@ -353,22 +353,31 @@ interface ResolveOptions {
   strict?: boolean;
 }
 
+const BIGINT_RANGE_ERROR_MESSAGE =
+  "hsize: BigInt value exceeds safe integer range, precision would be lost";
+const BIGINT_RANGE_WARN_MESSAGE =
+  "hsize: BigInt value exceeds safe integer range, precision may be lost";
+
+const isBigIntOutOfSafeRange = (value: bigint): boolean =>
+  value > BigInt(Number.MAX_SAFE_INTEGER) ||
+  value < BigInt(Number.MIN_SAFE_INTEGER);
+
+export const bigIntToSafeNumber = (value: bigint): number => {
+  if (isBigIntOutOfSafeRange(value)) {
+    throw new RangeError(BIGINT_RANGE_ERROR_MESSAGE);
+  }
+  return Number(value);
+};
+
 const bigIntToNumber = (
   value: bigint,
   options: ResolveOptions = {}
 ): number => {
-  if (
-    value > BigInt(Number.MAX_SAFE_INTEGER) ||
-    value < BigInt(Number.MIN_SAFE_INTEGER)
-  ) {
+  if (isBigIntOutOfSafeRange(value)) {
     if (options.strict) {
-      throw new RangeError(
-        "hsize: BigInt value exceeds safe integer range, precision would be lost"
-      );
+      throw new RangeError(BIGINT_RANGE_ERROR_MESSAGE);
     }
-    console.warn(
-      "hsize: BigInt value exceeds safe integer range, precision may be lost"
-    );
+    console.warn(BIGINT_RANGE_WARN_MESSAGE);
   }
   return Number(value);
 };

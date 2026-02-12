@@ -210,6 +210,17 @@ describe("clamp", () => {
     });
   });
 
+  describe("unsafe bigint handling", () => {
+    const a = 2n ** 80n + 1n;
+    const b = 2n ** 80n + 2n;
+
+    it("throws RangeError for out-of-safe-range bigint input or bounds", () => {
+      expect(() => clamp(a)).toThrow(RangeError);
+      expect(() => clamp(1n, { max: b })).toThrow(RangeError);
+      expect(() => clamp(a, { max: b })).toThrow(RangeError);
+    });
+  });
+
   describe("examples from requirements", () => {
     it('clamp("500 KB", { min: "1 MB", max: "1 GB" }) returns 1MB in bytes', () => {
       const result = clamp("500 KB", { max: "1 GB", min: "1 MB" });

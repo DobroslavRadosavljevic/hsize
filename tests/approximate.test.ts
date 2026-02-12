@@ -145,6 +145,10 @@ describe("approximate", () => {
       const result = approximate(1_099_511_627_776n);
       expect(result).toBe("1 TiB");
     });
+
+    it("throws for out-of-safe-range BigInt values", () => {
+      expect(() => approximate(2n ** 80n)).toThrow(RangeError);
+    });
   });
 
   describe("edge cases", () => {

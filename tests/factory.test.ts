@@ -57,4 +57,9 @@ describe("create (factory)", () => {
     const instance = create({ locale: "de-DE" });
     expect(instance.parse("1,5 KiB")).toBe(1536);
   });
+
+  it("throws for out-of-safe-range BigInt parse input", () => {
+    const instance = create();
+    expect(() => instance.parse(2n ** 80n)).toThrow(RangeError);
+  });
 });

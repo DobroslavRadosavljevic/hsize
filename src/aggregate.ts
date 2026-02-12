@@ -3,6 +3,7 @@ import type { FormatOptions, HybridByte } from "./types";
 import { decimalCmp, decimalToNumber, toDecimal } from "./decimal";
 import { format } from "./format";
 import { parse } from "./parse";
+import { bigIntToSafeNumber } from "./utils";
 
 /**
  * Options for aggregate functions.
@@ -32,7 +33,7 @@ const toBytes = (value: HybridByte): number => {
     return parse(value);
   }
   if (typeof value === "bigint") {
-    return Number(value);
+    return bigIntToSafeNumber(value);
   }
   return value;
 };
