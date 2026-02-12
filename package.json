@@ -38,6 +38,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "test": "bun test",
+    "test:coverage": "bun test --coverage --coverage-reporter=lcov",
     "lint": "bun ultracite check",
     "format": "bun ultracite fix",
     "typecheck": "tsc --noEmit",
