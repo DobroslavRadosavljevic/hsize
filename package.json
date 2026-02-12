@@ -18,10 +18,10 @@
   "author": "Dobroslav Radosavljevic <dobroslav.radosavljevic@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dobroslavradosavljevic/hsize.git"
+    "url": "git+https://github.com/dobroslavradosavljevic/hsize.git"
   },
   "bin": {
-    "hsize": "./dist/cli.mjs"
+    "hsize": "dist/cli.mjs"
   },
   "files": [
     "dist"
